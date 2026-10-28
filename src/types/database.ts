@@ -88,3 +88,4 @@ export interface DashboardStats {
   departments: { department: string; count: number }[];
   recent: Complaint[];
 }
+

@@ -227,3 +227,4 @@ CREATE POLICY "Authenticated users can record history on authorized complaints"
             OR public.is_admin()
         )
     );
+

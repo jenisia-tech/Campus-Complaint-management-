@@ -21,38 +21,57 @@ import {
   GraduationCap
 } from 'lucide-react';
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
+
 export default async function StudentDashboardPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let profile: Profile | null = null;
+  let complaints: Complaint[] = [];
 
-  if (!user) {
-    redirect('/login');
+  if (demoCookie) {
+    try {
+      profile = JSON.parse(demoCookie) as Profile;
+      if (profile.role === 'admin') {
+        redirect('/admin');
+      }
+      complaints = getDemoComplaints();
+    } catch {
+      redirect('/login');
+    }
+  } else {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    profile = profileData as Profile | null;
+
+    if (profile?.role === 'admin') {
+      redirect('/admin');
+    }
+
+    const { data: complaintsData } = await supabase
+      .from('complaints')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    complaints = (complaintsData as Complaint[]) || [];
   }
-
-  // Fetch profile
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  const profile = profileData as Profile | null;
-
-  if (profile?.role === 'admin') {
-    redirect('/admin');
-  }
-
-  // Fetch student complaints (Row-level security ensures only student's own records)
-  const { data: complaintsData } = await supabase
-    .from('complaints')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  const complaints: Complaint[] = (complaintsData as Complaint[]) || [];
 
   const total = complaints.length;
   const pending = complaints.filter((c) =>
@@ -73,7 +92,7 @@ export default async function StudentDashboardPage() {
             <span>Student Facility Portal</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Welcome back, {profile?.name || user.email?.split('@')[0]}
+            Welcome back, {profile?.name || profile?.email?.split('@')[0] || 'Student'}
           </h1>
           <p className="text-sm text-primary-200 flex flex-wrap items-center gap-3">
             <span>Roll: <strong className="text-white">{profile?.student_id || 'N/A'}</strong></span>
@@ -206,3 +225,4 @@ export default async function StudentDashboardPage() {
     </div>
   );
 }
+

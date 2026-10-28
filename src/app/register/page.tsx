@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { isSupabaseConfigured } from '@/lib/auth-demo';
 import { registerSchema } from '@/lib/validations/complaint';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -60,6 +61,31 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+
+    // If Supabase is unconfigured, complete registration in local demo evaluation mode
+    if (!isSupabaseConfigured()) {
+      try {
+        const res = await fetch('/api/auth/demo-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'student',
+            name: formData.name,
+            student_id: formData.student_id,
+            department: formData.department,
+            email: formData.email,
+          }),
+        });
+        if (res.ok) {
+          router.push('/dashboard');
+          router.refresh();
+          return;
+        }
+      } catch {
+        // fall through to standard error handling
+      }
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
@@ -253,3 +279,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

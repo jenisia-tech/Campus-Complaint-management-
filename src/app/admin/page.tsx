@@ -24,40 +24,62 @@ import {
   Flame
 } from 'lucide-react';
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
+
 export default async function AdminDashboardPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let profile: Profile | null = null;
+  let allComplaints: Complaint[] = [];
 
-  if (!user) {
-    redirect('/login');
+  if (demoCookie) {
+    try {
+      profile = JSON.parse(demoCookie) as Profile;
+      if (profile.role !== 'admin') {
+        redirect('/dashboard');
+      }
+      allComplaints = getDemoComplaints();
+    } catch {
+      redirect('/login');
+    }
+  } else {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    profile = profileData as Profile | null;
+
+    if (profile?.role !== 'admin') {
+      redirect('/dashboard');
+    }
+
+    // Fetch complaints with student profile
+    const { data: complaintsData, error } = await supabase
+      .from('complaints')
+      .select('*, profiles(name, student_id, email, department)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Admin dashboard error:', error);
+    }
+
+    allComplaints = (complaintsData as unknown as Complaint[]) || [];
   }
-
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  const profile = profileData as Profile | null;
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard');
-  }
-
-  // Fetch complaints with student profile
-  const { data: complaintsData, error } = await supabase
-    .from('complaints')
-    .select('*, profiles(name, student_id, email, department)')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Admin dashboard error:', error);
-  }
-
-  const allComplaints: Complaint[] = (complaintsData as unknown as Complaint[]) || [];
 
   // Compute live statistics
   const total = allComplaints.length;
@@ -261,3 +283,4 @@ export default async function AdminDashboardPage() {
     </div>
   );
 }
+

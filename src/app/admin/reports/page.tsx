@@ -11,38 +11,52 @@ import type { Complaint, Profile } from '@/types/database';
 import { PrintButton } from '@/components/PrintButton';
 import { ArrowLeft, Layers, Building2 } from 'lucide-react';
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
+
 export default async function AdminReportsPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let complaints: Complaint[] = [];
 
-  if (!user) {
-    redirect('/login');
+  if (demoCookie) {
+    const profile = JSON.parse(demoCookie) as Profile;
+    if (profile.role !== 'admin') {
+      redirect('/dashboard');
+    }
+    complaints = getDemoComplaints();
+  } else {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      redirect('/dashboard');
+    }
+
+    const { data: complaintsData, error } = await supabase
+      .from('complaints')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Reports fetch error:', error);
+    }
+    complaints = (complaintsData as Complaint[]) || [];
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard');
-  }
-
-  // Fetch all complaints
-  const { data: complaintsData, error } = await supabase
-    .from('complaints')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Reports fetch error:', error);
-  }
-
-  const complaints: Complaint[] = (complaintsData as Complaint[]) || [];
   const total = complaints.length;
 
   const catMap: Record<string, number> = {};

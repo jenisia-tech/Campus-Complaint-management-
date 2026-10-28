@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { complaintSchema } from '@/lib/validations/complaint';
+import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
+import { getDemoComplaints, addDemoComplaint, DEMO_STUDENT } from '@/lib/demo-data';
+import type { Profile } from '@/types/database';
 
 export async function GET(request: NextRequest) {
   try {
+    const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
+    if (demoCookie || !isSupabaseConfigured()) {
+      return NextResponse.json({ complaints: getDemoComplaints() });
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -24,7 +32,7 @@ export async function GET(request: NextRequest) {
       .select('*, profiles(name, student_id, email, department)')
       .order('created_at', { ascending: false });
 
-    // Enforce student ownership (RLS also reinforces this at DB level)
+    // Enforce student ownership
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -50,13 +58,47 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ complaints: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: (err as Error).message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const json = await request.json();
+    const parseResult = complaintSchema.safeParse(json);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: parseResult.error.issues.map((e) => e.message).join('. ') },
+        { status: 400 }
+      );
+    }
+
+    const payload = parseResult.data;
+
+    // Check demo mode
+    const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
+    if (demoCookie || !isSupabaseConfigured()) {
+      let studentId: string | undefined;
+      if (demoCookie) {
+        try {
+          const profile = JSON.parse(demoCookie) as Profile;
+          studentId = profile.id;
+        } catch {
+          // ignore
+        }
+      }
+      const newComplaint = addDemoComplaint({
+        ...payload,
+        user_id: studentId || DEMO_STUDENT.id,
+      });
+      return NextResponse.json({ complaint: newComplaint }, { status: 201 });
+    }
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -73,20 +115,8 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const json = await request.json();
-    const parseResult = complaintSchema.safeParse(json);
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { error: parseResult.error.errors.map((e) => e.message).join('. ') },
-        { status: 400 }
-      );
-    }
-
-    const payload = parseResult.data;
-
-    // 1. Insert complaint (trigger sets unique CMP-YYYY-XXXX automatically)
-    const { data: complaint, error: insertError } = await supabase
+    // Insert complaint
+    const { data: complaint, error: insertErr } = await supabase
       .from('complaints')
       .insert({
         user_id: user.id,
@@ -96,27 +126,29 @@ export async function POST(request: NextRequest) {
         location: payload.location,
         department: payload.department,
         priority: payload.priority,
-        status: 'Submitted',
       })
       .select()
       .single();
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    if (insertErr) {
+      return NextResponse.json({ error: insertErr.message }, { status: 500 });
     }
 
-    // 2. Record initial history entry
+    // Insert initial status history
     await supabase.from('complaint_history').insert({
-      complaint_id: complaint.complaint_id,
+      complaint_id: complaint.id,
       changed_by_user_id: user.id,
       changed_by_name: profile?.name || 'Student User',
       old_status: null,
       new_status: 'Submitted',
-      remarks: 'Complaint submitted by student',
+      remarks: 'Initial complaint submission',
     });
 
     return NextResponse.json({ complaint }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: (err as Error).message || 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

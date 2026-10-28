@@ -59,3 +59,4 @@ test.describe('Campus Complaint Management System - E2E User Journeys', () => {
     await expect(page.locator('input[name="confirm_password"]')).toBeVisible();
   });
 });
+

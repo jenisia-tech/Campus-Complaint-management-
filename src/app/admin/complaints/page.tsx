@@ -21,6 +21,10 @@ interface AdminComplaintsPageProps {
   }>;
 }
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
+
 export default async function AdminComplaintsPage({
   searchParams,
 }: AdminComplaintsPageProps) {
@@ -31,51 +35,75 @@ export default async function AdminComplaintsPage({
   const status = params.status;
   const department = params.department;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  if (!user) {
-    redirect('/login');
+  let complaints: Complaint[] = [];
+
+  if (demoCookie) {
+    const profile = JSON.parse(demoCookie) as Profile;
+    if (profile.role !== 'admin') {
+      redirect('/dashboard');
+    }
+    let demoList = getDemoComplaints();
+    if (category && category !== 'All') {
+      demoList = demoList.filter((c) => c.category === category);
+    }
+    if (priority && priority !== 'All') {
+      demoList = demoList.filter((c) => c.priority === priority);
+    }
+    if (status && status !== 'All') {
+      demoList = demoList.filter((c) => c.status === status);
+    }
+    if (department && department !== 'All') {
+      demoList = demoList.filter((c) => c.department === department);
+    }
+    complaints = demoList;
+  } else {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      redirect('/dashboard');
+    }
+
+    // Base query with profiles join
+    let query = supabase
+      .from('complaints')
+      .select('*, profiles(name, student_id, email, department)')
+      .order('created_at', { ascending: false });
+
+    if (category && category !== 'All') {
+      query = query.eq('category', category);
+    }
+    if (priority && priority !== 'All') {
+      query = query.eq('priority', priority);
+    }
+    if (status && status !== 'All') {
+      query = query.eq('status', status);
+    }
+    if (department && department !== 'All') {
+      query = query.eq('department', department);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching admin complaints:', error);
+    }
+    complaints = (data as unknown as Complaint[]) || [];
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard');
-  }
-
-  // Base query with profiles join
-  let query = supabase
-    .from('complaints')
-    .select('*, profiles(name, student_id, email, department)')
-    .order('created_at', { ascending: false });
-
-  if (category && category !== 'All') {
-    query = query.eq('category', category);
-  }
-  if (priority && priority !== 'All') {
-    query = query.eq('priority', priority);
-  }
-  if (status && status !== 'All') {
-    query = query.eq('status', status);
-  }
-  if (department && department !== 'All') {
-    query = query.eq('department', department);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Error fetching admin complaints:', error);
-  }
-
-  let complaints: Complaint[] = (data as unknown as Complaint[]) || [];
 
   // In-memory text search
   if (q) {
@@ -203,3 +231,4 @@ export default async function AdminComplaintsPage({
     </div>
   );
 }
+

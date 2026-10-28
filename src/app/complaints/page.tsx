@@ -20,6 +20,10 @@ interface ComplaintsPageProps {
   }>;
 }
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
+
 export default async function ComplaintsPage({ searchParams }: ComplaintsPageProps) {
   const params = await searchParams;
   const q = params.q?.trim().toLowerCase();
@@ -27,41 +31,57 @@ export default async function ComplaintsPage({ searchParams }: ComplaintsPagePro
   const priority = params.priority;
   const status = params.status;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  if (!user) {
-    redirect('/login');
+  let complaints: Complaint[] = [];
+
+  if (demoCookie) {
+    let demoList = getDemoComplaints();
+    if (category && category !== 'All') {
+      demoList = demoList.filter((c) => c.category === category);
+    }
+    if (priority && priority !== 'All') {
+      demoList = demoList.filter((c) => c.priority === priority);
+    }
+    if (status && status !== 'All') {
+      demoList = demoList.filter((c) => c.status === status);
+    }
+    complaints = demoList;
+  } else {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    let query = supabase
+      .from('complaints')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (category && category !== 'All') {
+      query = query.eq('category', category);
+    }
+
+    if (priority && priority !== 'All') {
+      query = query.eq('priority', priority);
+    }
+
+    if (status && status !== 'All') {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching complaints:', error);
+    }
+    complaints = (data as Complaint[]) || [];
   }
-
-  // Base query (RLS restricts to user's complaints)
-  let query = supabase
-    .from('complaints')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (category && category !== 'All') {
-    query = query.eq('category', category);
-  }
-
-  if (priority && priority !== 'All') {
-    query = query.eq('priority', priority);
-  }
-
-  if (status && status !== 'All') {
-    query = query.eq('status', status);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Error fetching complaints:', error);
-  }
-
-  let complaints: Complaint[] = (data as Complaint[]) || [];
 
   // In-memory text search across title, description, complaint_id, and location
   if (q) {
@@ -167,3 +187,4 @@ export default async function ComplaintsPage({ searchParams }: ComplaintsPagePro
     </div>
   );
 }
+

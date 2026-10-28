@@ -19,8 +19,13 @@ export function Navbar({ initialProfile }: NavbarProps) {
   const [profile] = useState<Profile | null>(initialProfile || null);
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      await fetch('/api/auth/demo-logout', { method: 'POST' });
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     router.push('/login');
     router.refresh();
   };
@@ -252,3 +257,4 @@ export function Navbar({ initialProfile }: NavbarProps) {
     </header>
   );
 }
+

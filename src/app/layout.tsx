@@ -5,6 +5,9 @@ import { Footer } from '@/components/Footer';
 import { createClient } from '@/lib/supabase/server';
 import type { Profile } from '@/types/database';
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+
 export const metadata: Metadata = {
   title: 'Campus Complaint Management System | Academic SE Project',
   description:
@@ -19,19 +22,25 @@ export default async function RootLayout({
   let profile: Profile | null = null;
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
+    const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
+    if (demoCookie) {
+      profile = JSON.parse(demoCookie) as Profile;
+    } else {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (user) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      if (data) {
-        profile = data as Profile;
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (data) {
+          profile = data as Profile;
+        }
       }
     }
   } catch {

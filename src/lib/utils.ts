@@ -119,3 +119,4 @@ export function calculateAverageTurnaround(
   const avgHours = totalMilliseconds / (eligible.length * 1000 * 60 * 60);
   return Math.round(avgHours * 10) / 10;
 }
+

@@ -28,3 +28,4 @@ ON CONFLICT (name) DO NOTHING;
 --    WHERE email = 'admin@campus.edu';
 --
 -- This strictly prevents non-admin users from escalating their own privileges via client forms.
+

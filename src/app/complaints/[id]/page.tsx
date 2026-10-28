@@ -25,62 +25,77 @@ interface ComplaintDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+import { cookies } from 'next/headers';
+import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
+import { getDemoComplaints, getDemoHistory } from '@/lib/demo-data';
+
 export default async function ComplaintDetailPage({ params }: ComplaintDetailPageProps) {
   const { id } = await params;
-  const supabase = await createClient();
+  const cookieStore = await cookies();
+  const demoCookie = cookieStore.get(DEMO_SESSION_COOKIE)?.value;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let complaint: Complaint | null = null;
+  let history: ComplaintHistory[] = [];
+  let isAdmin = false;
 
-  if (!user) {
-    redirect('/login');
-  }
-
-  // Fetch user profile to verify role
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  const profile = profileData as Profile | null;
-  const isAdmin = profile?.role === 'admin';
-
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-  // Fetch complaint (with student profile if available)
-  let query = supabase
-    .from('complaints')
-    .select('*, profiles(name, student_id, email, department)');
-
-  if (isUUID) {
-    query = query.eq('id', id);
+  if (demoCookie) {
+    const profile = JSON.parse(demoCookie) as Profile;
+    isAdmin = profile.role === 'admin';
+    const allDemo = getDemoComplaints();
+    const found = allDemo.find((c) => c.id === id || c.complaint_id === id);
+    if (!found) notFound();
+    complaint = found;
+    const historyMap = getDemoHistory();
+    history = historyMap[complaint.complaint_id] || [];
   } else {
-    query = query.eq('complaint_id', id);
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect('/login');
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    const profile = profileData as Profile | null;
+    isAdmin = profile?.role === 'admin';
+
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    let query = supabase
+      .from('complaints')
+      .select('*, profiles(name, student_id, email, department)');
+
+    if (isUUID) {
+      query = query.eq('id', id);
+    } else {
+      query = query.eq('complaint_id', id);
+    }
+
+    const { data: complaintData, error: complaintError } = await query.single();
+    if (complaintError || !complaintData) {
+      notFound();
+    }
+    complaint = complaintData as unknown as Complaint;
+
+    if (!isAdmin && complaint.user_id !== user.id) {
+      notFound();
+    }
+
+    const { data: historyData } = await supabase
+      .from('complaint_history')
+      .select('*')
+      .eq('complaint_id', complaint.id)
+      .order('created_at', { ascending: true });
+
+    history = (historyData as ComplaintHistory[]) || [];
   }
-
-  const { data: complaintData, error: complaintError } = await query.single();
-
-  if (complaintError || !complaintData) {
-    notFound();
-  }
-
-  const complaint = complaintData as unknown as Complaint;
-
-  // Authorization check: if not admin and not owner, return 404/forbidden
-  if (!isAdmin && complaint.user_id !== user.id) {
-    notFound();
-  }
-
-  // Fetch chronological audit history
-  const { data: historyData } = await supabase
-    .from('complaint_history')
-    .select('*')
-    .eq('complaint_id', id)
-    .order('created_at', { ascending: true });
-
-  const history: ComplaintHistory[] = (historyData as ComplaintHistory[]) || [];
 
   const statusMeta = getStatusBadge(complaint.status);
   const prioMeta = getPriorityBadge(complaint.priority);

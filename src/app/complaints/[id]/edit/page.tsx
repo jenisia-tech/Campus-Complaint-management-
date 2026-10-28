@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import type { ComplaintCategory, ComplaintPriority, Complaint } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
+import { isSupabaseConfigured } from '@/lib/auth-demo';
+import { getDemoComplaints } from '@/lib/demo-data';
 
 const CATEGORIES: ComplaintCategory[] = [
   'Classroom and infrastructure',
@@ -60,6 +62,30 @@ export default function EditComplaintPage() {
     async function loadComplaint() {
       if (!complaintId) return;
       try {
+        if (!isSupabaseConfigured()) {
+          const allDemo = getDemoComplaints();
+          const complaint = allDemo.find((c) => c.id === complaintId || c.complaint_id === complaintId);
+          if (!complaint) {
+            setErrorMessage('Complaint not found.');
+            setLoading(false);
+            return;
+          }
+          if (complaint.status !== 'Submitted') {
+            router.replace(`/complaints/${complaint.id}`);
+            return;
+          }
+          setFormData({
+            title: complaint.title,
+            description: complaint.description,
+            category: complaint.category,
+            location: complaint.location,
+            department: complaint.department,
+            priority: complaint.priority,
+          });
+          setLoading(false);
+          return;
+        }
+
         const supabase = createClient();
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(complaintId);
 
@@ -300,3 +326,4 @@ export default function EditComplaintPage() {
     </div>
   );
 }
+
