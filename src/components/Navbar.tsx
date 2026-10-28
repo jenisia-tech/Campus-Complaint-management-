@@ -45,9 +45,6 @@ export function Navbar({ initialProfile }: NavbarProps) {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-lg text-gray-900 tracking-tight">CampusCare</span>
-                <span className="text-xs font-semibold px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full border border-primary-200">
-                  Next.js + Supabase
-                </span>
               </div>
             </Link>
 
