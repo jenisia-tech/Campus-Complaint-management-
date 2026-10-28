@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Complaint {{ complaint.complaint_id }} - Campus Complaint Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fs-4 fw-bold font-monospace text-primary">{{ complaint.complaint_id }}</span>
+            {% set status_class = complaint.status|lower|replace(' ', '-') %}
+            <span class="badge badge-status-{{ status_class }} fs-6">
+                {{ complaint.status }}
+            </span>
+            <span class="badge badge-priority-{{ complaint.priority|lower }}">
+                {{ complaint.priority }} Priority
+            </span>
+        </div>
+        <p class="text-muted small mb-0">Registered: {{ complaint.created_at }} &bull; Last Activity: {{ complaint.updated_at }}</p>
+    </div>
+    <div class="mt-3 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('admin.complaints_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Complaints List
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Details & Action Form -->
+    <div class="col-lg-8">
+        <!-- Complaint Content Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">{{ complaint.title }}</h4>
+                <div class="p-3 bg-light rounded-3 mb-4 text-secondary" style="white-space: pre-wrap;">{{ complaint.description }}</div>
+
+                <div class="row g-3 text-sm">
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Category</span>
+                        <strong class="text-dark">{{ complaint.category }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Campus Location</span>
+                        <strong class="text-dark"><i class="bi bi-geo-alt text-danger"></i> {{ complaint.location }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Assigned Department</span>
+                        <strong class="text-dark">{{ complaint.department }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Assigned Staff / Technician</span>
+                        <strong class="text-dark">{{ complaint.assigned_to or 'Unassigned' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Details Card -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="fw-bold mb-0 text-muted text-uppercase small"><i class="bi bi-person-badge me-2"></i>Complainant Student Information</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Full Name</span>
+                        <strong class="text-dark">{{ complaint.student_name }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Student Roll / ID</span>
+                        <strong class="text-dark font-monospace">{{ complaint.student_reg_no }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">College Email</span>
+                        <a href="mailto:{{ complaint.student_email }}" class="text-primary text-decoration-none">{{ complaint.student_email }}</a>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Academic Department</span>
+                        <strong class="text-dark">{{ complaint.student_department }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Administrator Action / Status Update Form -->
+        <div class="card border-0 shadow-sm rounded-3 mb-4 border-top border-4 border-primary">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-sliders me-2"></i>Administrative Actions & Resolution Controls</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('admin.update_complaint', complaint_id=complaint.complaint_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="status" class="form-label fw-semibold">Update Status <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                {% for st in statuses %}
+                                    <option value="{{ st }}" {% if complaint.status == st %}selected{% endif %}>{{ st }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Choose the current resolution stage.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="priority" class="form-label fw-semibold">Priority Level <span class="text-danger">*</span></label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                {% for prio in priorities %}
+                                    <option value="{{ prio }}" {% if complaint.priority == prio %}selected{% endif %}>{{ prio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="department" class="form-label fw-semibold">Assigned Department</label>
+                            <select class="form-select" id="department" name="department">
+                                {% for dept in departments %}
+                                    <option value="{{ dept }}" {% if complaint.department == dept %}selected{% endif %}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="assigned_to" class="form-label fw-semibold">Assigned Technician / Staff</label>
+                            <input type="text" class="form-control" id="assigned_to" name="assigned_to"
+                                   placeholder="e.g., John Electrician / Estate Team B"
+                                   value="{{ complaint.assigned_to or '' }}" maxlength="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="admin_remarks" class="form-label fw-semibold">Internal Administrator Remarks</label>
+                        <textarea class="form-control" id="admin_remarks" name="admin_remarks" rows="2"
+                                  placeholder="Notes for department records or student updates...">{{ complaint.admin_remarks or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="resolution_notes" class="form-label fw-semibold">Resolution Summary Notes</label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="3"
+                                  placeholder="Describe how the problem was addressed, parts replaced, or preventive steps taken...">{{ complaint.resolution_notes or '' }}</textarea>
+                        <div class="form-text">Visible to the student when reviewing resolved issues.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Save Updates & Record History
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Status History Timeline -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Audit History</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if history %}
+                    <ul class="timeline">
+                        {% for h in history %}
+                            <li class="timeline-item">
+                                <span class="timeline-point"></span>
+                                <div class="timeline-content shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-secondary small">{{ h.new_status }}</span>
+                                        <span class="text-muted small" style="font-size: 0.75rem;">{{ (h.created_at|string)[:16] }}</span>
+                                    </div>
+                                    <div class="small fw-semibold text-dark">{{ h.changed_by_name }}</div>
+                                    {% if h.remarks %}
+                                        <div class="small text-muted mt-1">{{ h.remarks }}</div>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small">No history recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

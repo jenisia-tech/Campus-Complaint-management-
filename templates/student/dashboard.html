@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - Campus Complaint Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Student Portal Dashboard</h2>
+        <p class="text-muted mb-0">
+            Welcome, <strong>{{ session.get('user_name') }}</strong> ({{ session.get('student_id') }} &bull; {{ session.get('department') }})
+        </p>
+    </div>
+    <div class="mt-3 mt-md-0">
+        <a href="{{ url_for('student.submit_complaint') }}" class="btn btn-primary px-4 py-2 shadow-sm fw-semibold">
+            <i class="bi bi-plus-circle me-1"></i> Submit New Complaint
+        </a>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Total Submitted</span>
+                    <h3 class="fw-bold mt-1 mb-0">{{ stats.total }}</h3>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-collection"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('student.complaints_list') }}" class="stretched-link text-decoration-none small text-muted mt-2 d-inline-block">
+                View all complaints &rarr;
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Submitted (Initial)</span>
+                    <h3 class="fw-bold mt-1 mb-0 text-primary">{{ stats.submitted }}</h3>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="bi bi-inbox"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('student.complaints_list', status='Submitted') }}" class="stretched-link text-decoration-none small text-muted mt-2 d-inline-block">
+                View submitted &rarr;
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">In Progress</span>
+                    <h3 class="fw-bold mt-1 mb-0 text-warning">{{ stats.in_progress }}</h3>
+                </div>
+                <div class="stat-icon bg-warning-subtle text-warning">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('student.complaints_list', status='In Progress') }}" class="stretched-link text-decoration-none small text-muted mt-2 d-inline-block">
+                View ongoing &rarr;
+            </a>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Resolved / Closed</span>
+                    <h3 class="fw-bold mt-1 mb-0 text-success">{{ stats.resolved }}</h3>
+                </div>
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+            </div>
+            <a href="{{ url_for('student.complaints_list', status='Resolved') }}" class="stretched-link text-decoration-none small text-muted mt-2 d-inline-block">
+                View resolved &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Complaints Section -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0">Recent Complaints</h5>
+        <a href="{{ url_for('student.complaints_list') }}" class="btn btn-outline-secondary btn-sm">
+            View All Complaints
+        </a>
+    </div>
+    <div class="card-body p-0">
+        {% if stats.recent %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th scope="col" class="ps-4">Complaint ID</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Submitted On</th>
+                            <th scope="col" class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in stats.recent %}
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="fw-bold font-monospace text-primary">{{ c.complaint_id }}</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ c.title }}</div>
+                                    <div class="small text-muted">{{ c.location }}</div>
+                                </td>
+                                <td><span class="small">{{ c.category }}</span></td>
+                                <td>
+                                    <span class="badge badge-priority-{{ c.priority|lower }}">
+                                        {{ c.priority }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% set status_class = c.status|lower|replace(' ', '-') %}
+                                    <span class="badge badge-status-{{ status_class }}">
+                                        {{ c.status }}
+                                    </span>
+                                </td>
+                                <td class="small text-muted">
+                                    {{ (c.created_at|string)[:10] }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('student.complaint_detail', complaint_id=c.complaint_id) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-chat-square-dots empty-state-icon"></i>
+                <h5 class="fw-semibold">No complaints submitted yet</h5>
+                <p class="text-muted small mb-3">If you notice any campus issues with classrooms, laboratories, or hostels, report them here.</p>
+                <a href="{{ url_for('student.submit_complaint') }}" class="btn btn-primary btn-sm px-3">
+                    Submit Your First Complaint
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Database
+*.sqlite3
+*.db
+campus_complaints.db
+test_*.db
+
+# Environment & local secrets
+.env
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.coverage.*
+
+# Logs
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Windows shell wrapper for sandbox
+powershell.cmd

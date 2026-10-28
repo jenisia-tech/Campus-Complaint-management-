@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Complaint {{ complaint.complaint_id }} - Campus Complaint Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="fs-4 fw-bold font-monospace text-primary">{{ complaint.complaint_id }}</span>
+            {% set status_class = complaint.status|lower|replace(' ', '-') %}
+            <span class="badge badge-status-{{ status_class }} fs-6">
+                {{ complaint.status }}
+            </span>
+            <span class="badge badge-priority-{{ complaint.priority|lower }}">
+                {{ complaint.priority }} Priority
+            </span>
+        </div>
+        <p class="text-muted small mb-0">Submitted on {{ complaint.created_at }} &bull; Last updated {{ complaint.updated_at }}</p>
+    </div>
+    <div class="mt-3 mt-md-0 d-flex gap-2">
+        <a href="{{ url_for('student.complaints_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+        {% if complaint.status == 'Submitted' %}
+            <a href="{{ url_for('student.edit_complaint', complaint_id=complaint.complaint_id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil"></i> Edit Complaint
+            </a>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                <i class="bi bi-x-circle"></i> Withdraw
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Details Column -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">{{ complaint.title }}</h4>
+                <div class="p-3 bg-light rounded-3 mb-4 text-secondary" style="white-space: pre-wrap;">{{ complaint.description }}</div>
+
+                <div class="row g-3 text-sm">
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Category</span>
+                        <strong class="text-dark">{{ complaint.category }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Campus Location</span>
+                        <strong class="text-dark"><i class="bi bi-geo-alt text-danger"></i> {{ complaint.location }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Department Responsible</span>
+                        <strong class="text-dark">{{ complaint.department }}</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="text-muted d-block small">Assigned Staff / Technician</span>
+                        <strong class="text-dark">{{ complaint.assigned_to or 'Pending assignment' }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Remarks / Resolution Notes -->
+        {% if complaint.admin_remarks or complaint.resolution_notes %}
+            <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-primary">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-chat-left-quote text-primary me-2"></i>Administration Updates</h5>
+                    {% if complaint.admin_remarks %}
+                        <div class="mb-3">
+                            <span class="text-muted small fw-semibold">Administrator Remarks:</span>
+                            <div class="mt-1 p-2 bg-light rounded">{{ complaint.admin_remarks }}</div>
+                        </div>
+                    {% endif %}
+                    {% if complaint.resolution_notes %}
+                        <div>
+                            <span class="text-success small fw-semibold"><i class="bi bi-check2-circle"></i> Final Resolution Notes:</span>
+                            <div class="mt-1 p-2 bg-success-subtle text-success-emphasis rounded">{{ complaint.resolution_notes }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Status History Timeline Column -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Status History</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if history %}
+                    <ul class="timeline">
+                        {% for h in history %}
+                            <li class="timeline-item">
+                                <span class="timeline-point"></span>
+                                <div class="timeline-content shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-secondary small">{{ h.new_status }}</span>
+                                        <span class="text-muted small" style="font-size: 0.75rem;">{{ (h.created_at|string)[:16] }}</span>
+                                    </div>
+                                    <div class="small fw-semibold text-dark">{{ h.changed_by_name }}</div>
+                                    {% if h.remarks %}
+                                        <div class="small text-muted mt-1">{{ h.remarks }}</div>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small">No history recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Withdraw Confirmation Modal -->
+{% if complaint.status == 'Submitted' %}
+<div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('student.withdraw_complaint', complaint_id=complaint.complaint_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="withdrawModalLabel">Withdraw Complaint</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">
+                        Are you sure you want to withdraw complaint <strong>{{ complaint.complaint_id }}</strong>? This action will set the status to <strong>Closed</strong>.
+                    </p>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label small fw-semibold">Optional Reason for Withdrawal:</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="e.g., Issue was resolved on its own..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Withdrawal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Complaint Analytics & Reports - Administrator Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">Campus Complaint Resolution Reports</h2>
+        <p class="text-muted mb-0">Quantitative resolution metrics and department breakdown for academic IA3 audit.</p>
+    </div>
+    <div class="mt-3 mt-md-0 d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer me-1"></i> Print / Export Report
+        </button>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-speedometer2 me-1"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Executive Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Total Logged</div>
+            <h2 class="fw-bold text-dark mt-1 mb-0">{{ stats.total }}</h2>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Resolved / Closed</div>
+            <h2 class="fw-bold text-success mt-1 mb-0">{{ stats.resolved + stats.closed }}</h2>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Critical Issues</div>
+            <h2 class="fw-bold text-danger mt-1 mb-0">{{ stats.critical }}</h2>
+        </div>
+    </div>
+    <div class="col-sm-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 rounded-3 bg-white text-center">
+            <div class="text-muted small fw-semibold text-uppercase">Avg Turnaround</div>
+            <h2 class="fw-bold text-primary mt-1 mb-0">{{ stats.avg_resolution_hours }} hrs</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Category Distribution Table -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-folder2-open me-2"></i>Distribution by Category</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th scope="col" class="ps-4">Category</th>
+                                <th scope="col" class="text-center">Count</th>
+                                <th scope="col" class="text-end pe-4">Share (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if stats.categories %}
+                                {% for cat in stats.categories %}
+                                    <tr>
+                                        <td class="ps-4 fw-semibold text-dark">{{ cat.category }}</td>
+                                        <td class="text-center font-monospace">{{ cat.count }}</td>
+                                        <td class="text-end pe-4 text-muted small">
+                                            {% if stats.total > 0 %}
+                                                {{ (cat.count / stats.total * 100) | round(1) }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">No category records.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Distribution Table -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-3 h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2"></i>Distribution by Status</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th scope="col" class="ps-4">Status</th>
+                                <th scope="col" class="text-center">Count</th>
+                                <th scope="col" class="text-end pe-4">Share (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if stats.statuses %}
+                                {% for st in stats.statuses %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            {% set status_class = st.status|lower|replace(' ', '-') %}
+                                            <span class="badge badge-status-{{ status_class }}">
+                                                {{ st.status }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center font-monospace">{{ st.count }}</td>
+                                        <td class="text-end pe-4 text-muted small">
+                                            {% if stats.total > 0 %}
+                                                {{ (st.count / stats.total * 100) | round(1) }}%
+                                            {% else %}
+                                                0%
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">No status records.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Department Distribution -->
+<div class="card border-0 shadow-sm rounded-3">
+    <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-building me-2"></i>Complaints by Department Responsible</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted">
+                    <tr>
+                        <th scope="col" class="ps-4">Department</th>
+                        <th scope="col" class="text-center">Count</th>
+                        <th scope="col" class="text-end pe-4">Share (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if stats.departments %}
+                        {% for dept in stats.departments %}
+                            <tr>
+                                <td class="ps-4 fw-semibold text-dark">{{ dept.department }}</td>
+                                <td class="text-center font-monospace">{{ dept.count }}</td>
+                                <td class="text-end pe-4 text-muted small">
+                                    {% if stats.total > 0 %}
+                                        {{ (dept.count / stats.total * 100) | round(1) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">No department records.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
