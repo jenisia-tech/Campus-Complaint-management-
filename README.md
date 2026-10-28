@@ -1,228 +1,255 @@
-# Campus Complaint Management System (CampusCare)
+# Campus Complaint Management System (Next.js + Supabase + Vercel)
 
-**Academic Evaluation:** College Software Engineering IA3 Practical Project  
-**Implementation Technology:** Python (Flask), SQLite, HTML5, CSS3, JavaScript (Bootstrap 5), pytest, Selenium
+A modern, full-stack **Campus Complaint Management System** designed for colleges and universities to digitally intake, track, triage, and resolve student facility grievances. Built as a comprehensive academic Software Engineering project for IA3 practical demonstration and evaluation.
+
+![Next.js](https://img.shields.io/badge/Next.js-15.1.7-black?style=flat-square&logo=next.js)
+![React](https://img.shields.io/badge/React-19.0.0-blue?style=flat-square&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-blue?style=flat-square&logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL%20%26%20Auth-3ECF8E?style=flat-square&logo=supabase)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.17-38B2AC?style=flat-square&logo=tailwind-css)
+![Vitest](https://img.shields.io/badge/Vitest-27%20Passed-6E9F18?style=flat-square&logo=vitest)
+![Vercel](https://img.shields.io/badge/Deployment-Vercel%20Ready-000000?style=flat-square&logo=vercel)
 
 ---
 
-## 1. Project Overview
+## 📌 Legacy Implementation Preservation
 
-The **Campus Complaint Management System** is a centralized, digital web platform built for college campuses. It allows students to submit, track, and monitor complaints across classrooms, laboratories, hostels, Wi-Fi, electricity, drinking water, and other campus facilities. Campus facility administrators gain tools to triage, assign, update, and resolve grievances with full audit accountability and live dashboard analytics.
+The original prototype built using Python Flask, SQLite, and Bootstrap 5 has been safely preserved in full inside the [`legacy_flask/`](./legacy_flask/) directory, including all models, blueprints, templates, unit tests, and the initial SQLite database.
 
 ---
 
-## 2. Key Features
+## 🚀 Key Features
 
 ### For Students
-- **Account Registration & Login:** Register with roll number, college email, name, and department. Secure session management and PBKDF2 password encryption.
-- **Complaint Submission:** Report campus issues across 10 official categories with campus location, responsible department, and suggested priority.
-- **Sequential Tracking ID:** Automated generation of unique tracking IDs (e.g., `CMP-2026-0001`).
-- **Real-Time Audit Timeline:** View a chronological timeline showing every status change, remarks, and timestamps.
-- **Student Ownership & Protection:** Strict privacy enforcement; students can only view and modify their own reports.
-- **Editing & Withdrawal:** Modify or withdraw a complaint while it remains in the initial `Submitted` status.
+- **Account Registration & Login:** Official student registration with Name, Student ID (Roll Number), Campus Email, and Department.
+- **Deterministic Ticket ID:** Generates concurrent-safe tracking identifiers formatted as `CMP-YYYY-XXXX` (e.g., `CMP-2026-0001`) via PostgreSQL sequence triggers.
+- **Grievance Filing:** Intuitive form across 10 official categories with location, department, description, and priority level.
+- **Real-Time Tracking & History:** Interactive chronological audit timeline tracking every status advancement, responsible staff, and remarks.
+- **Search & Multi-Parameter Filters:** Instant searching by ticket ID or keyword, and filtering by category, priority, and status.
+- **Strict Business Rules:** Students can edit or withdraw grievances **only while in the initial `Submitted` status**. Once under review or in progress, tickets are locked.
 
 ### For Administrators
-- **Executive Dashboard:** Live calculated KPIs (Total, Pending Review, In Progress, Resolved, Closed, Critical Issues, and Mean Resolution Turnaround in hours).
-- **Interactive Visualizations:** Chart.js graphs for complaint distribution by category (doughnut chart) and by status (bar chart).
-- **Comprehensive Search & Multi-Filters:** Search across titles, IDs, locations, and student names; filter by category, department, priority, and status.
-- **Triage & Assignment:** Assign complaints to specific departments or staff technicians, adjust priorities, and record internal notes.
-- **Status Advancement & Resolution:** Advance complaints through the formal lifecycle (`Submitted` &rarr; `Under Review` &rarr; `Assigned` &rarr; `In Progress` &rarr; `Resolved` &rarr; `Closed`, plus `Reopened`) and record final resolution notes.
-- **Analytical Reports:** Breakdown tables and export-ready/print-friendly report views (`window.print()`).
+- **Administrative Control Center:** Live dashboard computing total complaints, pending review, active maintenance, critical tickets, and average resolution turnaround hours.
+- **Data Visualizations:** Interactive Chart.js charts showing grievance distributions by category and status lifecycle.
+- **Campus Directory & Triage:** Filter all grievances campus-wide by department, status, category, priority, or search query.
+- **Staff Assignment & Department Routing:** Assign responsible technicians and update responsible departments.
+- **Workflow Advancement & Resolution:** Advance statuses through the official lifecycle: `Submitted` &rarr; `Under Review` &rarr; `Assigned` &rarr; `In Progress` &rarr; `Resolved` &rarr; `Closed`, plus `Reopened`.
+- **Audit Logging:** Every status advancement automatically records the actor's identity, remarks, and timestamp.
+- **Printable Analytical Reports:** Executive summary report with printable PDF styling (`window.print()`).
 
 ---
 
-## 3. Technology Stack
+## 🛠️ Technology Stack
 
-- **Backend:** Python 3.10+ with Flask 3.x
-- **Database:** SQLite3 with relational foreign keys, transactions, and indexes
-- **Frontend:** HTML5, CSS3, JavaScript, Bootstrap 5.3, Bootstrap Icons, Chart.js 4.4
-- **Security:** Werkzeug PBKDF2:SHA256 password hashing, session-bound CSRF protection, auto-escaping against XSS, and parameterized SQL queries against SQL injection
-- **Testing:** pytest 9.x, pytest-cov 7.x, Selenium 4.x (headless browser automation)
-- **Version Control:** Git
-
----
-
-## 4. Course Outcomes (CO1 to CO5) Coverage
-
-| Course Outcome | Academic Documentation | Key Implemented Artifacts & Evidence |
+| Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **CO1: Software Process Models** | [`docs/CO1_Process_Models.md`](docs/CO1_Process_Models.md) | Waterfall vs. Scrum analysis, 12 Product Backlog user stories, 3-sprint execution plan, and hybrid development justification. |
-| **CO2: UML Design & Architecture** | [`docs/CO2_UML_Design.md`](docs/CO2_UML_Design.md) | Valid Mermaid diagrams: Use Case, Class, Component, Activity (submission flow), Sequence (admin resolution), and UI prototype evolution. |
-| **CO3: Software Testing** | [`docs/CO3_Testing_Report.md`](docs/CO3_Testing_Report.md) | 24 automated tests (11 unit/white-box, 12 integration/security, 1 Selenium E2E), 100% test pass rate, and bug remediation log. |
-| **CO4: SQA & Configuration Management** | [`docs/CO4_Quality_and_Configuration.md`](docs/CO4_Quality_and_Configuration.md) | Git setup, SemVer convention, ISO/IEC 25010 mapping, Six Sigma DMAIC, and 80.0% measured pytest-cov code coverage. |
-| **CO5: Project Estimation & Scheduling** | [`docs/CO5_Project_Estimation.md`](docs/CO5_Project_Estimation.md) | Work Breakdown Structure (WBS), COCOMO II Early Design model, Mermaid Gantt chart, EVM/SPI worked example, and CMMI process levels. |
+| **Frontend Framework** | React 19 + Next.js 15 App Router | Server Components (RSC) and Client interactive components |
+| **Language & Typing** | TypeScript 5.7 | 100% strict type safety across routes, props, and schemas |
+| **Styling & UI** | Tailwind CSS + Lucide React | Accessible, modern responsive user interface |
+| **Database Engine** | Supabase (PostgreSQL 15) | Relational persistence, sequence triggers, and cascading constraints |
+| **Authentication & RLS** | Supabase Auth + Row-Level Security | JWT authentication with database-enforced row isolation |
+| **Schema Validation** | Zod 3.24 | Dual-layer validation on client forms and Next.js route handlers |
+| **Data Visualizations** | Chart.js 4.4 + React-Chartjs-2 | Interactive bar and doughnut analytics |
+| **Testing Automation** | Vitest + Playwright | 27 unit & integration tests + browser-level E2E tests |
+| **Deployment Target** | Vercel | Edge-optimized serverless full-stack hosting |
 
 ---
 
-## 5. Prerequisites
+## 📋 Quick Evaluation Test Credentials
 
-Before running the application on your Windows machine, ensure you have:
-- **Windows 10 / 11**
-- **Python 3.10 or higher** (Verify with `python --version`)
-- **Google Chrome** or **Microsoft Edge** (for running Selenium automated tests)
+For college examiners and practical evaluators, pre-configured demo helper buttons are provided on the `/login` page:
+
+| Role | Email | Password | Access Privileges |
+| :--- | :--- | :--- | :--- |
+| **Student** | `student@campus.edu` | `Student@123456` | Student Dashboard, Filing, Personal Directory |
+| **Administrator** | `admin@campus.edu` | `Admin@123456` | Admin Triage, Assignment, Live Stats, Reports |
 
 ---
 
-## 6. Step-by-Step Setup & Execution Instructions (Windows PowerShell)
+## ⚙️ Step-by-Step Setup Guide (Windows PowerShell)
 
-Follow these exact commands in Windows PowerShell:
+### 1. Prerequisites
+- **Node.js**: Version 18.x or higher (Node.js 22+ recommended). Check with:
+  ```powershell
+  node --version
+  ```
+- **Git**: Check with:
+  ```powershell
+  git --version
+  ```
 
-### Step 1: Open Project Directory
+---
+
+### 2. Configure Supabase Database & Auth
+
+1. Go to [https://supabase.com](https://supabase.com) and create a **Free Account**.
+2. Click **New Project** and name it `Campus-Complaint-System`.
+3. In your Supabase Project Dashboard:
+   - Navigate to **Project Settings &rarr; API**.
+   - Copy your **Project URL**, **Anon / Public Key**, and **Service Role Key** (under Project API keys).
+4. In your project root, copy the environment template:
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+5. Open `.env.local` in an editor and paste your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+6. **Run Database Migrations**:
+   - In Supabase, navigate to the **SQL Editor** on the left menu.
+   - Open [`supabase/migrations/20261029000000_initial_schema.sql`](./supabase/migrations/20261029000000_initial_schema.sql) and paste its contents into the SQL Editor.
+   - Click **Run**. This creates all tables (`profiles`, `departments`, `complaints`, `complaint_history`), the sequence trigger for `CMP-YYYY-XXXX`, and strict Row-Level Security (RLS) policies.
+   - Next, copy the contents of [`supabase/seed.sql`](./supabase/seed.sql) and run it in the SQL Editor to seed the 10 official campus departments.
+
+---
+
+### 3. Install Dependencies & Run the App
+
+1. Install project dependencies:
+   ```powershell
+   npm install
+   ```
+
+2. Start the Next.js local development server:
+   ```powershell
+   npm run dev
+   ```
+
+3. Open your browser and navigate to:
+   ```
+   http://localhost:3000
+   ```
+
+---
+
+### 4. Running the Production Build
+
+To test the production build locally:
+
 ```powershell
-cd c:\Users\haeue\OneDrive\Desktop\Jenoi\College\MP\student-complaint-portal\Campus-Complaint-management-
+npm run build
+npm run start
 ```
 
-### Step 2: (Optional) Create & Activate Virtual Environment
+---
+
+## 🧪 Automated Testing Suite
+
+The project includes automated tests for unit validations, status workflow state transitions, utility functions, and Playwright browser journeys:
+
+### Run Unit and Integration Tests (Vitest)
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
+npm test
+```
+*Expected Output: 27 of 27 test cases passing (100% pass rate).*
+
+### Run Strict TypeScript Type Check
+```powershell
+npx tsc --noEmit
+```
+*Expected Output: Clean exit with 0 type errors.*
+
+### Run End-to-End Browser Tests (Playwright)
+```powershell
+npm run test:e2e
 ```
 
-### Step 3: Install Required Dependencies
-```powershell
-python -m pip install -r requirements.txt
-```
+---
 
-### Step 4: Populate Demonstration Accounts & Sample Complaints
-Run the seed script to create test accounts and 6 realistic complaints:
-```powershell
-python scripts/seed_demo.py --force-reset
-```
-*(This creates the database, lookup tables, 1 admin, 2 students, and 6 sample complaints across multiple categories.)*
+## 🌐 Deploying to Vercel
 
-### Step 5: Start the Flask Application Server
-```powershell
-python app.py
-```
-You will see output indicating that the server is running:
+1. Push your repository to **GitHub**:
+   ```powershell
+   git add .
+   git commit -m "feat: complete full-stack Next.js and Supabase migration"
+   git push origin main
+   ```
+2. Go to [https://vercel.com](https://vercel.com) and click **Add New Project**.
+3. Import your GitHub repository.
+4. In the **Environment Variables** section, add:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_APP_URL` (set to your Vercel deployment URL, e.g. `https://your-app.vercel.app`)
+5. Click **Deploy**. Vercel will automatically build and publish your application globally.
+
+---
+
+## 📚 Academic Course Outcomes (CO1 to CO5) Documentation
+
+This project contains comprehensive academic documentation mapped to Software Engineering standards:
+
+- **[CO1: Software Process Models](./docs/CO1_Process_Models.md):** Waterfall vs. Agile comparison, 3-sprint Scrum plan, role-based user stories, and acceptance criteria.
+- **[CO2: UML Design & Architecture](./docs/CO2_UML_Design.md):** Mermaid diagrams for System Architecture, Use Case, Class Model, Sequence Flows, and State Machine.
+- **[CO3: Software Testing Report](./docs/CO3_Testing_Report.md):** Execution matrix of all 27 automated Vitest unit/integration tests and Playwright E2E suites.
+- **[CO4: Quality Assurance & Configuration Management](./docs/CO4_Quality_and_Configuration.md):** SCM Git branching model, Vercel CI/CD pipeline, and ISO/IEC 25010 Quality Model mapping.
+- **[CO5: Project Estimation & Scheduling](./docs/CO5_Project_Estimation.md):** Work Breakdown Structure (WBS), COCOMO II sizing calculations, and Earned Value Management (EVM).
+
+---
+
+## 📂 Project Directory Structure
+
 ```text
- * Serving Flask app 'app'
- * Debug mode: on
- * Running on http://127.0.0.1:5000
-```
-
-### Step 6: Open the Application in your Browser
-Open your browser and navigate to:
-**[http://127.0.0.1:5000](http://127.0.0.1:5000)**
-
----
-
-## 7. Demonstration Credentials (For Evaluation)
-
-| Role | Email / Identifier | Student Roll No | Password | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Campus Administrator** | `admin@campus.edu` | — | `Admin@123` | Full administrative triage, status assignment, and reporting |
-| **Student 1** | `john.doe@student.campus.edu` | `STU-2026-001` | `Student@123` | Computer Science student; has active complaints |
-| **Student 2** | `sarah.smith@student.campus.edu` | `STU-2026-002` | `Student@123` | Electrical Engineering student; has active complaints |
-
-> You can also register a brand new student account at [http://127.0.0.1:5000/register](http://127.0.0.1:5000/register).
-
----
-
-## 8. Running Automated Tests
-
-All tests run in isolated test databases (`tempfile`) and **will never modify or delete your demonstration data**.
-
-### Run Unit and Integration Tests:
-```powershell
-python -m pytest tests/unit tests/integration -v
-```
-
-### Run Tests with Code Coverage Report:
-```powershell
-python -m pytest tests/unit tests/integration --cov=. --cov-report=term-missing
-```
-*(Measured result: **23 passed, 80% statement coverage**)*
-
-### Run Selenium Browser Automation Test:
-```powershell
-python -m pytest tests/selenium/test_browser_flow.py -v
-```
-*(Automatically launches headless Chrome/Edge, logs in as student, files a complaint, logs out, logs in as admin, updates the status to `In Progress`, and verifies the full workflow).*
-
----
-
-## 9. Project Directory Structure
-
-```
-Campus-Complaint-management-/
-├── app.py                     # Flask application factory and entry point
-├── config.py                  # Multi-environment configurations (Dev, Testing)
-├── requirements.txt           # Python package dependencies
-├── .env.example               # Environment variables template
-├── .gitignore                 # Version control exclusions
-├── campus_complaints.db       # Persistent SQLite database (created on run)
-├── database/
-│   ├── __init__.py
-│   ├── connection.py          # SQLite connection manager and row factory
-│   ├── schema.sql             # Relational SQL schema with foreign keys and indexes
-│   └── db_init.py             # Schema initialization and default department seeds
-├── models/
-│   ├── __init__.py
-│   ├── user.py                # User data access and PBKDF2 password hashing
-│   └── complaint.py           # Complaint CRUD, state transitions, transactions, and metrics
-├── routes/
-│   ├── __init__.py
-│   ├── auth_routes.py         # Login, student registration, and logout
-│   ├── student_routes.py      # Student dashboard, submission, detail, edit, withdraw
-│   ├── admin_routes.py        # Admin dashboard, directory, triage actions, and reports
-│   └── error_handlers.py      # User-friendly 400, 403, 404, 500 error pages
-├── services/
-│   ├── __init__.py
-│   ├── auth_service.py        # Role decorators (@admin_required, @student_required)
-│   ├── csrf.py                # Cryptographic CSRF token generation and validation
-│   └── validation.py          # Strict backend validation and status transition matrix
-├── templates/
-│   ├── base.html              # Responsive Bootstrap 5 layout with navigation and alerts
-│   ├── index.html             # Academic portal landing page with quick demo accounts
-│   ├── auth/                  # Login and student registration templates
-│   ├── student/               # Student dashboard, submission, and timeline templates
-│   ├── admin/                 # Admin dashboard, triage, and report templates
-│   └── errors/                # 400, 403, 404, 500 error page templates
-├── static/
-│   ├── css/style.css          # Custom styling, status badges, and vertical timeline
-│   └── js/main.js             # Client-side scripts and alert auto-dismissal
-├── scripts/
-│   ├── __init__.py
-│   └── seed_demo.py           # Repeatable demo data population script
+├── src/
+│   ├── app/                      # Next.js 15 App Router pages & APIs
+│   │   ├── page.tsx              # Public Landing Page & Demo Evaluation Guide
+│   │   ├── layout.tsx            # Global Root Layout
+│   │   ├── globals.css           # Tailwind CSS directives
+│   │   ├── login/page.tsx        # Authentication Portal with Demo Buttons
+│   │   ├── register/page.tsx     # Student Registration Portal
+│   │   ├── dashboard/page.tsx    # Protected Student Dashboard
+│   │   ├── complaints/           # Student Directory & Filing Views
+│   │   │   ├── page.tsx          # Complaint Directory with Filters
+│   │   │   ├── new/page.tsx      # Lodge New Grievance Form
+│   │   │   └── [id]/             # Detail & Status Timeline View
+│   │   │       ├── page.tsx      # Complaint Detail & Timeline View
+│   │   │       └── edit/page.tsx # Edit Grievance (Submitted state only)
+│   │   ├── admin/                # Protected Administrator Views
+│   │   │   ├── page.tsx          # Admin Control Center & Live Stats
+│   │   │   ├── complaints/       # Campus-Wide Grievance Directory
+│   │   │   └── reports/page.tsx  # Analytical Reports & Print View
+│   │   ├── api/                  # Next.js Route Handlers
+│   │   │   ├── complaints/       # Intake, Update, and Withdraw APIs
+│   │   │   └── admin/            # Triage, Assignment & Aggregation APIs
+│   │   └── auth/callback/        # Supabase Auth Exchange Callback
+│   ├── components/               # Reusable React UI Components
+│   │   ├── ui/                   # Button, Card, Badge, StatCard, EmptyState
+│   │   ├── Navbar.tsx            # Responsive Role-Based Navigation
+│   │   ├── Footer.tsx            # Application Footer
+│   │   ├── ComplaintTimeline.tsx # Chronological Status Audit Viewer
+│   │   ├── ComplaintFilters.tsx  # Dynamic Query-Param Filter Toolbar
+│   │   ├── AdminActionForm.tsx   # Status Advancement & Assignment Panel
+│   │   ├── StudentActionForm.tsx # Student Edit/Withdraw Modal Form
+│   │   ├── CategoryChart.tsx     # Chart.js Category Distribution
+│   │   └── StatusChart.tsx       # Chart.js Status Lifecycle Visualizer
+│   ├── lib/
+│   │   ├── supabase/             # Client, Server, and Middleware Helpers
+│   │   ├── validations/          # Zod Schemas & State Machine Logic
+│   │   └── utils.ts              # Badge Color Resolvers & Helpers
+│   ├── types/
+│   │   └── database.ts           # TypeScript Models (Complaint, Profile, etc.)
+│   └── middleware.ts             # Session Refresh & Protected Route Guards
+├── supabase/
+│   ├── migrations/               # PostgreSQL Versioned Schema & Triggers
+│   └── seed.sql                  # Department Seed Data & Admin Setup Guide
 ├── tests/
-│   ├── __init__.py
-│   ├── conftest.py            # Pytest test client and isolated database fixtures
-│   ├── unit/                  # Unit tests for models, validation, and stats
-│   ├── integration/           # Integration tests for routes, RBAC, and security
-│   └── selenium/              # End-to-end headless browser automation test
-└── docs/
-    ├── CO1_Process_Models.md  # Software process models, backlog, and sprint plans
-    ├── CO2_UML_Design.md      # Mermaid diagrams and UI prototype evolution
-    ├── CO3_Testing_Report.md  # Test case matrix, execution results, and defect log
-    ├── CO4_Quality_and_Configuration.md # SCM, SemVer, SQA checklist, ISO/IEC 25010
-    └── CO5_Project_Estimation.md # WBS, COCOMO II, Mermaid Gantt, and SPI analysis
+│   ├── unit/                     # Vitest Schema & Utility Tests
+│   ├── integration/              # Vitest Business Logic & Role Tests
+│   └── e2e/                      # Playwright Browser Flow Tests
+├── docs/                         # Academic Software Engineering Documentation (CO1-CO5)
+├── legacy_flask/                 # Preserved Original Flask + SQLite Implementation
+├── .env.example                  # Environment Variables Template
+├── package.json                  # NPM Project Dependencies & Scripts
+├── tailwind.config.ts            # Tailwind Design System Configuration
+├── tsconfig.json                 # TypeScript Configuration with Path Aliases
+└── README.md                     # Comprehensive Project Guide
 ```
 
 ---
 
-## 10. Troubleshooting Common Issues
+## ⚖️ Academic Evaluation Note
 
-1. **Port 5000 Already in Use:**
-   If another application is using port 5000, start Flask on a different port:
-   ```powershell
-   python -c "from app import create_app; app = create_app('development'); app.run(port=5050)"
-   ```
-   Then open `http://127.0.0.1:5050`.
-
-2. **Resetting Demo Data:**
-   To reset the database back to clean demo data:
-   ```powershell
-   python scripts/seed_demo.py --force-reset
-   ```
-
-3. **Selenium Browser Driver Warning:**
-   Selenium 4.6+ includes `Selenium Manager` which handles browser drivers automatically. Ensure Google Chrome or Microsoft Edge is installed in standard Windows Program Files.
-
----
-
-## 11. Academic Evaluation Summary
-
-- **Demonstration Suitability:** Completely functional local system with real SQLite data persistence, genuine transactional integrity, and zero mock API placeholders.
-- **Security Compliance:** Parameterized queries, CSRF validation, password hashing, and role-based route protection.
-- **Test Integrity:** 24 automated tests actually executed and passing with 80% measured code coverage.
+Developed for academic evaluation in Software Engineering (IA3 practical examination). All code, database schemas, test harnesses, and architectural documentation demonstrate the rigorous application of modern software engineering methodologies.

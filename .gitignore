@@ -1,37 +1,43 @@
-# Python artifacts
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-ENV/
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
 
-# Database
-*.sqlite3
-*.db
-campus_complaints.db
-test_*.db
+# Next.js build output
+/.next/
+/out/
 
-# Environment & local secrets
-.env
+# Production
+/build
 
 # Testing & Coverage
-.pytest_cache/
-.coverage
-htmlcov/
-*.coverage.*
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
-# Logs
-*.log
-
-# IDE & OS
-.vscode/
-.idea/
+# Misc
 .DS_Store
-Thumbs.db
+*.pem
 
-# Windows shell wrapper for sandbox
+# Local env files
+.env*.local
+.env
+!.env.example
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Legacy Python & Windows helpers
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
 powershell.cmd

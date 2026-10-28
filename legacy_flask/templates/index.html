@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Campus Complaint Management Portal{% endblock %}
+
+{% block content %}
+<div class="row align-items-center py-5">
+    <div class="col-lg-7">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3 fw-semibold">
+            <i class="bi bi-mortarboard me-1"></i> College Software Engineering IA3 Project
+        </span>
+        <h1 class="display-4 fw-bold text-dark mb-3">
+            Centralized Campus Complaint Management System
+        </h1>
+        <p class="lead text-secondary mb-4">
+            A transparent digital platform for college students to report infrastructure, laboratory, Wi-Fi, hostel, and maintenance problems. Track complaint lifecycles in real-time while campus administrators efficiently review, assign, and resolve campus issues.
+        </p>
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4 shadow-sm">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Student / Admin Login
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-secondary btn-lg px-4">
+                <i class="bi bi-person-plus me-1"></i> New Student Registration
+            </a>
+        </div>
+        <div class="row pt-3 text-muted small">
+            <div class="col-auto d-flex align-items-center gap-1">
+                <i class="bi bi-shield-check text-success fs-5"></i> Role-Based Access Control
+            </div>
+            <div class="col-auto d-flex align-items-center gap-1">
+                <i class="bi bi-clock-history text-primary fs-5"></i> Real-time Audit Timeline
+            </div>
+            <div class="col-auto d-flex align-items-center gap-1">
+                <i class="bi bi-graph-up text-info fs-5"></i> Dynamic Dashboard Metrics
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5 mt-5 mt-lg-0">
+        <div class="card shadow border-0 p-4 rounded-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-lightning-charge-fill text-warning"></i>
+                <span>Quick Demonstration Access</span>
+            </h5>
+            <p class="text-muted small">
+                Pre-configured demonstration accounts for academic practical evaluation:
+            </p>
+            <div class="list-group list-group-flush mb-3">
+                <div class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Administrator Account</strong>
+                            <div class="small text-muted">admin@campus.edu</div>
+                        </div>
+                        <span class="badge bg-danger">admin</span>
+                    </div>
+                    <div class="small text-muted mt-1">Default Password: <code>Admin@123</code></div>
+                </div>
+                <div class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Student 1 (Computer Science)</strong>
+                            <div class="small text-muted">john.doe@student.campus.edu</div>
+                        </div>
+                        <span class="badge bg-info text-dark">student</span>
+                    </div>
+                    <div class="small text-muted mt-1">ID: <code>STU-2026-001</code> | Pass: <code>Student@123</code></div>
+                </div>
+                <div class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Student 2 (Electrical Engg)</strong>
+                            <div class="small text-muted">sarah.smith@student.campus.edu</div>
+                        </div>
+                        <span class="badge bg-info text-dark">student</span>
+                    </div>
+                    <div class="small text-muted mt-1">ID: <code>STU-2026-002</code> | Pass: <code>Student@123</code></div>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary w-100">
+                Proceed to Sign In
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 py-4 border-top">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3 rounded-3">
+            <div class="stat-icon bg-primary-subtle text-primary mb-3">
+                <i class="bi bi-send-check fs-4"></i>
+            </div>
+            <h5 class="fw-bold">1. Easy Complaint Filing</h5>
+            <p class="text-secondary small">
+                Students can log complaints across 10 official categories (Classrooms, Labs, Hostel, Wi-Fi, Water, etc.) with location details and priority assignment.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3 rounded-3">
+            <div class="stat-icon bg-warning-subtle text-warning mb-3">
+                <i class="bi bi-diagram-3 fs-4"></i>
+            </div>
+            <h5 class="fw-bold">2. Transparent Workflow</h5>
+            <p class="text-secondary small">
+                Structured lifecycle: Submitted &rarr; Under Review &rarr; Assigned &rarr; In Progress &rarr; Resolved &rarr; Closed. Complete audit trail records all remarks and timestamps.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3 rounded-3">
+            <div class="stat-icon bg-success-subtle text-success mb-3">
+                <i class="bi bi-speedometer fs-4"></i>
+            </div>
+            <h5 class="fw-bold">3. Admin Monitoring</h5>
+            <p class="text-secondary small">
+                Administrators can review backlogs, assign staff technicians, prioritize critical infrastructure issues, and track average resolution turnaround times.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Student Registration - Campus Complaint Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="stat-icon bg-success-subtle text-success mx-auto mb-3">
+                        <i class="bi bi-person-plus fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold">Student Registration</h3>
+                    <p class="text-muted small">Create your student portal account to report and track complaints</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.register') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               placeholder="e.g., Alex Johnson"
+                               value="{{ form_data.get('name', '') }}" required minlength="2" maxlength="100">
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="student_id" class="form-label fw-semibold">Student ID / Roll No <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="student_id" name="student_id"
+                                   placeholder="e.g., STU-2026-105"
+                                   value="{{ form_data.get('student_id', '') }}" required maxlength="25">
+                            <div class="form-text">Must be 3-25 alphanumeric characters.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="department" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department" name="department" required>
+                                <option value="" disabled {% if not form_data.get('department') %}selected{% endif %}>Select department</option>
+                                <option value="Computer Science" {% if form_data.get('department') == 'Computer Science' %}selected{% endif %}>Computer Science</option>
+                                <option value="Electrical Engineering" {% if form_data.get('department') == 'Electrical Engineering' %}selected{% endif %}>Electrical Engineering</option>
+                                <option value="Mechanical Engineering" {% if form_data.get('department') == 'Mechanical Engineering' %}selected{% endif %}>Mechanical Engineering</option>
+                                <option value="Civil Engineering" {% if form_data.get('department') == 'Civil Engineering' %}selected{% endif %}>Civil Engineering</option>
+                                <option value="Information Technology" {% if form_data.get('department') == 'Information Technology' %}selected{% endif %}>Information Technology</option>
+                                <option value="Electronics & Communication" {% if form_data.get('department') == 'Electronics & Communication' %}selected{% endif %}>Electronics & Communication</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">College Email Address <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               placeholder="e.g., alex.johnson@student.campus.edu"
+                               value="{{ form_data.get('email', '') }}" required maxlength="120">
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="password" name="password"
+                                   placeholder="Min 6 characters" required minlength="6">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                   placeholder="Re-type password" required minlength="6">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Register Student Account
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top text-center text-muted small">
+                    Already registered? <a href="{{ url_for('auth.login') }}" class="text-primary fw-semibold">Sign in here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

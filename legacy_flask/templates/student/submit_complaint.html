@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Submit New Complaint - Campus Complaint Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Submit Campus Complaint</h2>
+                <p class="text-muted mb-0">Provide accurate details so the maintenance department can resolve the problem promptly.</p>
+            </div>
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="{{ url_for('student.submit_complaint') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">Complaint Subject / Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-lg" id="title" name="title"
+                               placeholder="e.g., Broken ceiling fan in Room 302"
+                               value="{{ form_data.get('title', '') }}" required minlength="5" maxlength="150">
+                        <div class="form-text">A concise summary of the issue (5 to 150 characters).</div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="category" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="" disabled {% if not form_data.get('category') %}selected{% endif %}>Select complaint category</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat }}" {% if form_data.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="priority" class="form-label fw-semibold">Suggested Priority <span class="text-danger">*</span></label>
+                            <select class="form-select" id="priority" name="priority" required>
+                                {% for prio in priorities %}
+                                    <option value="{{ prio }}" {% if form_data.get('priority', 'Medium') == prio %}selected{% endif %}>{{ prio }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="location" class="form-label fw-semibold">Campus Location / Building / Room <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   placeholder="e.g., Science Block, 3rd Floor, Room 302"
+                                   value="{{ form_data.get('location', '') }}" required minlength="2" maxlength="100">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="department" class="form-label fw-semibold">Department Responsible <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department" name="department" required>
+                                <option value="" disabled {% if not form_data.get('department') %}selected{% endif %}>Select department</option>
+                                {% for dept in departments %}
+                                    <option value="{{ dept }}" {% if form_data.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-semibold">Detailed Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="5"
+                                  placeholder="Describe the issue in detail: when it started, specific symptoms, and any safety hazards..."
+                                  required minlength="10" maxlength="3000">{{ form_data.get('description', '') }}</textarea>
+                        <div class="form-text">Minimum 10 characters. Provide any useful context to expedite resolution.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('student.dashboard') }}" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-send-check me-1"></i> Submit Complaint
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
