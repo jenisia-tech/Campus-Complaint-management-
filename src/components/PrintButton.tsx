@@ -9,7 +9,7 @@ export function PrintButton() {
     <Button
       type="button"
       onClick={() => window.print()}
-      className="inline-flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 shadow-xs"
+      className="inline-flex items-center gap-2 bg-navy-900 hover:bg-navy-800 text-white dark:bg-teal-600 dark:hover:bg-teal-500 shadow-xs font-semibold"
     >
       <Printer className="w-4 h-4" />
       <span>Print / Export PDF</span>

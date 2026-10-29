@@ -20,11 +20,16 @@ export function Button({
     'inline-flex items-center justify-center font-medium transition-all rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm';
 
   const variants = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
-    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-800 focus:ring-gray-400',
-    danger: 'bg-rose-600 hover:bg-rose-700 text-white focus:ring-rose-500',
-    outline: 'border border-gray-300 hover:bg-gray-50 text-gray-700 focus:ring-primary-500 bg-white',
-    ghost: 'hover:bg-gray-100 text-gray-700 shadow-none',
+    primary:
+      'bg-teal-600 hover:bg-teal-700 text-white dark:bg-teal-500 dark:hover:bg-teal-400 dark:text-slate-900 focus:ring-teal-500 font-semibold shadow-xs',
+    secondary:
+      'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-campus-darkSurface dark:hover:bg-slate-700 dark:text-slate-100 focus:ring-slate-400',
+    danger:
+      'bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600 text-white focus:ring-rose-500',
+    outline:
+      'border border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard text-slate-700 dark:text-slate-200 hover:bg-teal-50/50 dark:hover:bg-campus-darkSurface focus:ring-teal-500',
+    ghost:
+      'hover:bg-slate-100 dark:hover:bg-campus-darkSurface text-slate-700 dark:text-slate-200 shadow-none',
   };
 
   const sizes = {

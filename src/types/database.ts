@@ -1,5 +1,7 @@
 export type UserRole = 'student' | 'admin';
 
+export type ComplaintType = 'Hostel' | 'College';
+
 export type ComplaintCategory =
   | 'Classroom and infrastructure'
   | 'Laboratory equipment'
@@ -10,6 +12,8 @@ export type ComplaintCategory =
   | 'Library facilities'
   | 'Transportation'
   | 'Food and canteen'
+  | 'Plumbing and water supply'
+  | 'Cleanliness and housekeeping'
   | 'Other';
 
 export type ComplaintPriority = 'Low' | 'Medium' | 'High' | 'Critical';
@@ -30,6 +34,12 @@ export interface Profile {
   email: string;
   role: UserRole;
   department: string;
+  course?: string | null;
+  year_of_study?: string | null;
+  hostel_block?: string | null;
+  floor?: string | null;
+  room_number?: string | null;
+  phone?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -48,11 +58,17 @@ export interface Complaint {
   user_id: string;
   title: string;
   description: string;
+  complaint_type: ComplaintType;
   category: ComplaintCategory;
   location: string;
   department: string;
   priority: ComplaintPriority;
   status: ComplaintStatus;
+  hostel_block?: string | null;
+  floor?: string | null;
+  room_number?: string | null;
+  building?: string | null;
+  facility?: string | null;
   assigned_to: string | null;
   admin_remarks: string | null;
   resolution_notes: string | null;
@@ -88,4 +104,3 @@ export interface DashboardStats {
   departments: { department: string; count: number }[];
   recent: Complaint[];
 }
-

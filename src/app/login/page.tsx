@@ -8,7 +8,7 @@ import { isSupabaseConfigured } from '@/lib/auth-demo';
 import { loginSchema } from '@/lib/validations/complaint';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ShieldCheck, LogIn, AlertCircle, Sparkles, Database, CheckCircle2, Info } from 'lucide-react';
+import { ShieldCheck, LogIn, AlertCircle, Sparkles } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -21,22 +21,29 @@ function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
   const [showDemoOffer, setShowDemoOffer] = useState(false);
 
-  const loginViaDemoApi = async (role: 'student' | 'admin') => {
+  const loginViaDemoApi = async (roleOverride?: 'student' | 'admin', customEmail?: string) => {
     setLoading(true);
     try {
+      const targetEmail = customEmail || email || 'student@campus.edu';
+      const isRole = roleOverride || (targetEmail.toLowerCase().includes('admin') ? 'admin' : 'student');
       const res = await fetch('/api/auth/demo-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({
+          role: isRole,
+          email: targetEmail,
+          password: password,
+        }),
       });
+      const data = await res.json();
       if (res.ok) {
-        router.push(role === 'admin' ? '/admin' : '/dashboard');
-        router.refresh();
+        window.location.href = data.profile?.role === 'admin' ? '/admin' : '/dashboard';
         return;
       }
-      throw new Error('Failed to set demo session');
+      setErrorMessage(data.error || 'Failed to authenticate');
+      setLoading(false);
     } catch (err: unknown) {
-      setErrorMessage((err as Error).message);
+      setErrorMessage((err as Error).message || 'Failed to initialize session');
       setLoading(false);
     }
   };
@@ -53,11 +60,9 @@ function LoginForm() {
       return;
     }
 
-    const isDemoRole: 'student' | 'admin' = email.toLowerCase().includes('admin') ? 'admin' : 'student';
-
-    // If Supabase is not configured with real cloud keys, use local evaluation demo mode directly
+    // If Supabase is not configured with real cloud keys, use student demo evaluation mode directly
     if (!isSupabaseConfigured()) {
-      await loginViaDemoApi(isDemoRole);
+      await loginViaDemoApi();
       return;
     }
 
@@ -70,24 +75,13 @@ function LoginForm() {
       });
 
       if (error) {
-        setErrorMessage(error.message || 'Authentication failed. Please verify your credentials.');
+        setErrorMessage(error.message || 'Authentication failed. Please verify your student credentials.');
         setLoading(false);
         return;
       }
 
       if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile?.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
-        router.refresh();
+        window.location.href = '/dashboard';
       }
     } catch (err: unknown) {
       const msg = (err as Error).message || '';
@@ -104,62 +98,43 @@ function LoginForm() {
     }
   };
 
-  const setDemoCredentials = (role: 'student' | 'admin') => {
-    if (role === 'student') {
-      setEmail('student@campus.edu');
-      setPassword('Student@123456');
-    } else {
-      setEmail('admin@campus.edu');
-      setPassword('Admin@123456');
-    }
+  const setStudentDemoCredentials = () => {
+    setEmail('student@campus.edu');
+    setPassword('Student@123456');
     setErrorMessage(null);
   };
 
   return (
     <div className="max-w-md mx-auto py-8">
-      {/* Informational Banner */}
-      {!isSupabaseConfigured() && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-1.5 font-bold text-amber-800">
-            <Info className="w-4 h-4 shrink-0 text-amber-700" />
-            <span>Academic IA3 Evaluation Mode Active</span>
-          </div>
-          <p className="text-amber-800 leading-relaxed">
-            Supabase cloud credentials are not yet configured in <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-semibold">.env.local</code>.
-            You can sign in immediately using the <strong>Quick Demo Buttons</strong> below with pre-seeded data, or connect your Supabase database when ready.
-          </p>
-        </div>
-      )}
-
-      <Card className="shadow-lg border-slate-200">
-        <CardHeader className="text-center space-y-2">
-          <div className="w-12 h-12 bg-primary-100 text-primary-700 rounded-xl flex items-center justify-center mx-auto mb-1">
+      <Card className="shadow-lg border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard">
+        <CardHeader className="text-center space-y-2 border-b border-notepad-border dark:border-notepad-darkBorder">
+          <div className="w-12 h-12 bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-xl flex items-center justify-center mx-auto mb-1">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to your campus complaint management account
+          <CardTitle className="text-2xl font-bold text-navy-900 dark:text-slate-100">Student Portal Sign In</CardTitle>
+          <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+            Enter your campus credentials to file and track grievances
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pt-6">
           {errorMessage && (
-            <div className="mb-4 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm space-y-2">
+            <div className="mb-4 p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-[#FDA4AF] text-sm space-y-2">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 <span className="leading-snug">{errorMessage}</span>
               </div>
               {showDemoOffer && (
-                <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between">
-                  <span className="text-xs text-rose-800 font-medium">Use local demo instead?</span>
+                <div className="pt-2 border-t border-rose-200/80 dark:border-rose-800/60 flex items-center justify-between">
+                  <span className="text-xs text-rose-800 dark:text-rose-300 font-medium">Continue in Student Demo Mode?</span>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => loginViaDemoApi('student')}
-                    className="text-xs bg-white text-rose-900 border-rose-300 hover:bg-rose-100"
+                    onClick={() => loginViaDemoApi()}
+                    className="text-xs bg-white dark:bg-notepad-darkCard text-rose-900 dark:text-rose-200 border-rose-300 hover:bg-rose-100"
                   >
-                    Enter Demo Mode
+                    Enter Student Demo
                   </Button>
                 </div>
               )}
@@ -168,21 +143,21 @@ function LoginForm() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Campus Email Address
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                Student Email Address
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g., student@campus.edu"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="student@campus.edu"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                 Password
               </label>
               <input
@@ -191,58 +166,46 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
               />
             </div>
 
-            <Button type="submit" disabled={loading} className="w-full shadow-sm">
+            <Button type="submit" disabled={loading} className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-slate-900 shadow-sm font-semibold">
               {loading ? (
                 'Signing in...'
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <LogIn className="w-4 h-4" /> Sign In
+                  <LogIn className="w-4 h-4" /> Sign In as Student
                 </span>
               )}
             </Button>
           </form>
 
           {/* Instant 1-Click Evaluation Buttons */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-2.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary-600" />
-              <span>Instant 1-Click Demo Evaluation:</span>
+          <div className="mt-6 pt-5 border-t border-notepad-border dark:border-notepad-darkBorder">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium mb-2.5">
+              <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+              <span>Instant 1-Click Student Evaluation:</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => loginViaDemoApi('student')}
-                disabled={loading}
-                className="text-xs border-primary-200 text-primary-700 hover:bg-primary-50"
-              >
-                Sign in as Student
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => loginViaDemoApi('admin')}
-                disabled={loading}
-                className="text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-              >
-                Sign in as Admin
-              </Button>
-            </div>
-            <p className="text-[11px] text-slate-400 text-center mt-2">
-              Or click to pre-fill: <button type="button" onClick={() => setDemoCredentials('student')} className="underline hover:text-slate-600">Student</button> &bull; <button type="button" onClick={() => setDemoCredentials('admin')} className="underline hover:text-slate-600">Admin</button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => loginViaDemoApi()}
+              disabled={loading}
+              className="w-full text-xs font-semibold border-teal-300 dark:border-teal-800 text-teal-800 dark:text-teal-300 bg-teal-50/50 dark:bg-teal-950/40 hover:bg-teal-100 py-2.5"
+            >
+              Sign In with Demo Student Account
+            </Button>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-2.5">
+              Or <button type="button" onClick={setStudentDemoCredentials} className="underline hover:text-slate-600 dark:hover:text-slate-300 font-medium text-slate-500 dark:text-slate-400">pre-fill credentials</button> (student@campus.edu)
             </p>
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-center border-t border-slate-100 text-xs text-slate-500">
+        <CardFooter className="flex justify-center border-t border-notepad-border dark:border-notepad-darkBorder text-xs text-slate-500 dark:text-slate-400">
           <span>Don&apos;t have an account yet?</span>
-          <Link href="/register" className="ml-1.5 font-semibold text-primary-600 hover:underline">
+          <Link href="/register" className="ml-1.5 font-semibold text-teal-600 dark:text-teal-400 hover:underline">
             Register as Student
           </Link>
         </CardFooter>

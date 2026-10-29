@@ -10,6 +10,17 @@ export async function GET(request: NextRequest) {
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
 
     if (demoCookie || !isSupabaseConfigured()) {
+      if (!demoCookie) {
+        return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
+      }
+      try {
+        const profile = JSON.parse(demoCookie) as Profile;
+        if (profile.role !== 'admin') {
+          return NextResponse.json({ error: 'Forbidden: Administrator privileges required.' }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Unauthorized: Invalid session.' }, { status: 401 });
+      }
       const allComplaints = getDemoComplaints();
       const total = allComplaints.length;
       const pending = allComplaints.filter((c) =>
@@ -69,22 +80,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // Parallelize role verification and complaints retrieval
+    const [profileRes, complaintsRes] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', user.id).single(),
+      supabase
+        .from('complaints')
+        .select('*, profiles(name, student_id, email)')
+        .order('created_at', { ascending: false }),
+    ]);
 
+    const profile = profileRes.data;
     if (!profile || profile.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    // Query all complaints for stats calculation
-    const { data: complaints, error: fetchError } = await supabase
-      .from('complaints')
-      .select('*, profiles(name, student_id, email)')
-      .order('created_at', { ascending: false });
+    const complaints = complaintsRes.data;
+    const fetchError = complaintsRes.error;
 
     if (fetchError) {
       console.error('Admin stats fetch error:', fetchError);

@@ -26,8 +26,8 @@ interface AdminComplaintDetailPageProps {
 }
 
 import { cookies } from 'next/headers';
-import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
-import { getDemoComplaints, getDemoHistory } from '@/lib/demo-data';
+import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
+import { getStoredComplaintById, getStoredHistory } from '@/lib/local-store';
 
 export default async function AdminComplaintDetailPage({
   params,
@@ -42,14 +42,13 @@ export default async function AdminComplaintDetailPage({
   if (demoCookie) {
     const profile = JSON.parse(demoCookie) as Profile;
     if (profile.role !== 'admin') {
-      redirect('/dashboard');
+      redirect('/dashboard?error=unauthorized_admin');
     }
-    const allDemo = getDemoComplaints();
-    const found = allDemo.find((c) => c.id === id || c.complaint_id === id);
-    if (!found) notFound();
-    complaint = found;
-    const historyMap = getDemoHistory();
-    history = historyMap[complaint.complaint_id] || [];
+    complaint = getStoredComplaintById(id);
+    if (!complaint) notFound();
+    history = getStoredHistory(complaint.complaint_id);
+  } else if (!isSupabaseConfigured()) {
+    redirect('/login');
   } else {
     const supabase = await createClient();
     const {
@@ -106,14 +105,14 @@ export default async function AdminComplaintDetailPage({
       <div className="flex items-center justify-between">
         <Link
           href="/admin/complaints"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Complaints Registry
         </Link>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
-          <ShieldCheck className="w-4 h-4 text-primary-600" />
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/80 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 text-xs font-semibold">
+          <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           <span>Admin Triage Mode</span>
         </div>
       </div>
@@ -121,42 +120,42 @@ export default async function AdminComplaintDetailPage({
       {/* Main Grievance Details & Student Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm font-bold text-primary-800 bg-primary-50 px-2.5 py-1 rounded-md border border-primary-200">
+                  <span className="font-mono text-sm font-bold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/80 px-2.5 py-1 rounded-md border border-teal-200 dark:border-teal-800">
                     {complaint.complaint_id}
                   </span>
                   <Badge className={prioMeta.className}>{prioMeta.label} Priority</Badge>
                   <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
                 </div>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   Lodged: {formatDate(complaint.created_at)}
                 </span>
               </div>
 
-              <CardTitle className="text-2xl font-bold text-slate-900 leading-snug">
+              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100 leading-snug">
                 {complaint.title}
               </CardTitle>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs text-slate-600 border-t border-slate-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs text-slate-600 dark:text-slate-300 border-t border-notepad-border dark:border-notepad-darkBorder">
                 <div className="flex items-center gap-1.5">
                   <Tag className="w-4 h-4 text-slate-400 shrink-0" />
                   <span>
-                    <strong className="text-slate-700">Category:</strong> {complaint.category}
+                    <strong className="text-slate-700 dark:text-slate-200">Category:</strong> {complaint.category}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
                   <span>
-                    <strong className="text-slate-700">Location:</strong> {complaint.location}
+                    <strong className="text-slate-700 dark:text-slate-200">Location:</strong> {complaint.location}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
                   <span>
-                    <strong className="text-slate-700">Dept:</strong> {complaint.department}
+                    <strong className="text-slate-700 dark:text-slate-200">Dept:</strong> {complaint.department}
                   </span>
                 </div>
               </div>
@@ -164,32 +163,32 @@ export default async function AdminComplaintDetailPage({
 
             <CardContent className="space-y-6">
               <div>
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                   Complaint Description
                 </h4>
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                <div className="bg-slate-50 dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-xl p-4 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                   {complaint.description}
                 </div>
               </div>
 
               {/* Existing Remarks / Resolution */}
               {(complaint.admin_remarks || complaint.resolution_notes || complaint.assigned_to) && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <div className="bg-slate-50 dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     Current Maintenance Assignment &amp; Notes
                   </h4>
                   {complaint.assigned_to && (
-                    <div className="text-xs text-slate-800">
+                    <div className="text-xs text-slate-800 dark:text-slate-200">
                       <strong>Assigned Lead:</strong> {complaint.assigned_to}
                     </div>
                   )}
                   {complaint.admin_remarks && (
-                    <div className="text-xs text-slate-800">
+                    <div className="text-xs text-slate-800 dark:text-slate-200">
                       <strong>Remarks:</strong> {complaint.admin_remarks}
                     </div>
                   )}
                   {complaint.resolution_notes && (
-                    <div className="text-xs text-slate-800">
+                    <div className="text-xs text-slate-800 dark:text-slate-200">
                       <strong>Resolution Notes:</strong> {complaint.resolution_notes}
                     </div>
                   )}
@@ -205,38 +204,38 @@ export default async function AdminComplaintDetailPage({
         {/* Sidebar: Student Profile & Action Form */}
         <div className="space-y-6">
           {/* Complainant Information Card */}
-          <Card className="border-slate-200 shadow-xs">
+          <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="w-4 h-4 text-primary-600" />
+              <CardTitle className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <User className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 Complainant Student Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-xs text-slate-600">
+            <CardContent className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
               <div>
                 <div className="text-slate-400">Student Name</div>
-                <div className="font-semibold text-slate-900 text-sm">
+                <div className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
                   {complaint.profiles?.name || 'N/A'}
                 </div>
               </div>
 
               <div>
                 <div className="text-slate-400">Roll / Student ID</div>
-                <div className="font-mono font-medium text-slate-800">
+                <div className="font-mono font-medium text-slate-800 dark:text-slate-200">
                   {complaint.profiles?.student_id || 'N/A'}
                 </div>
               </div>
 
               <div>
                 <div className="text-slate-400">Academic Department</div>
-                <div className="font-medium text-slate-800">
+                <div className="font-medium text-slate-800 dark:text-slate-200">
                   {complaint.profiles?.department || 'N/A'}
                 </div>
               </div>
 
               <div>
                 <div className="text-slate-400">Email Address</div>
-                <div className="font-medium text-slate-800 break-all">
+                <div className="font-medium text-slate-800 dark:text-slate-200 break-all">
                   {complaint.profiles?.email || 'N/A'}
                 </div>
               </div>

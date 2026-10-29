@@ -48,10 +48,10 @@ export function StudentActionForm({ complaint }: StudentActionFormProps) {
 
   if (!isEligible) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs text-gray-500">
-        <p className="font-semibold text-gray-700">Modification Restricted</p>
+      <div className="bg-slate-50 dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-xl p-4 text-xs text-slate-500 dark:text-slate-400">
+        <p className="font-semibold text-slate-700 dark:text-slate-200">Modification Restricted</p>
         <p className="mt-0.5">
-          This complaint is currently in <strong>{complaint.status}</strong> status. Editing and withdrawal are restricted to grievances in the initial <strong>Submitted</strong> state.
+          This complaint is currently in <strong className="text-slate-700 dark:text-slate-200">{complaint.status}</strong> status. Editing and withdrawal are restricted to grievances in the initial <strong className="text-slate-700 dark:text-slate-200">Submitted</strong> state.
         </p>
       </div>
     );
@@ -61,8 +61,8 @@ export function StudentActionForm({ complaint }: StudentActionFormProps) {
     <>
       <div className="flex flex-wrap items-center gap-2">
         <Link href={`/complaints/${complaint.complaint_id}/edit`}>
-          <Button variant="outline" size="sm" className="flex items-center gap-1.5">
-            <Pencil className="w-3.5 h-3.5 text-primary-600" />
+          <Button variant="outline" size="sm" className="flex items-center gap-1.5 border-notepad-border dark:border-notepad-darkBorder text-slate-700 dark:text-slate-200">
+            <Pencil className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
             Edit Complaint
           </Button>
         </Link>
@@ -70,7 +70,7 @@ export function StudentActionForm({ complaint }: StudentActionFormProps) {
           variant="outline"
           size="sm"
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 text-rose-600 hover:text-rose-700 border-rose-200 hover:bg-rose-50"
+          className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 hover:text-rose-700 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
         >
           <XCircle className="w-3.5 h-3.5" />
           Withdraw Complaint
@@ -79,27 +79,27 @@ export function StudentActionForm({ complaint }: StudentActionFormProps) {
 
       {/* Confirmation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200">
-            <div className="flex items-center gap-3 text-rose-600 mb-3">
-              <div className="p-2 bg-rose-50 rounded-xl">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-notepad-darkCard rounded-2xl max-w-md w-full p-6 shadow-xl border border-notepad-border dark:border-notepad-darkBorder">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400 mb-3">
+              <div className="p-2 bg-rose-50 dark:bg-rose-950/70 rounded-xl">
                 <AlertTriangle className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Withdraw Complaint</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Withdraw Complaint</h3>
             </div>
-            <p className="text-sm text-gray-600">
-              Are you sure you want to withdraw complaint <strong>{complaint.complaint_id}</strong>? Its status will be marked as <strong>Closed</strong>.
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Are you sure you want to withdraw complaint <strong className="text-slate-900 dark:text-slate-100">{complaint.complaint_id}</strong>? Its status will be marked as <strong className="text-slate-900 dark:text-slate-100">Closed</strong>.
             </p>
 
             {error && (
-              <div className="mt-3 p-3 bg-rose-50 text-rose-700 rounded-lg text-xs">
+              <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg text-xs">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleWithdraw} className="mt-4 space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Reason for withdrawal (Optional):
                 </label>
                 <textarea
@@ -107,7 +107,7 @@ export function StudentActionForm({ complaint }: StudentActionFormProps) {
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="e.g., Problem resolved on its own..."
-                  className="w-full text-sm p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  className="w-full text-sm p-2.5 border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-rose-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                 />
               </div>
 

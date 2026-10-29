@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { complaintUpdateSchema } from '@/lib/validations/complaint';
 import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
-import { getDemoComplaints, getDemoHistory } from '@/lib/demo-data';
+import { getStoredComplaintById, updateStoredComplaint } from '@/lib/local-store';
+import type { Profile } from '@/types/database';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -10,6 +11,45 @@ interface RouteContext {
 
 function isUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
+export async function GET(request: NextRequest, { params }: RouteContext) {
+  try {
+    const { id: rawId } = await params;
+    const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
+
+    if (demoCookie || !isSupabaseConfigured()) {
+      let profile: Profile | null = null;
+      if (demoCookie) {
+        try {
+          profile = JSON.parse(demoCookie) as Profile;
+        } catch {}
+      }
+      const existing = getStoredComplaintById(rawId);
+      if (!existing) {
+        return NextResponse.json({ error: 'Complaint not found.' }, { status: 404 });
+      }
+      return NextResponse.json(existing);
+    }
+
+    const supabase = await createClient();
+    const query = supabase.from('complaints').select('*');
+    if (isUUID(rawId)) {
+      query.eq('id', rawId);
+    } else {
+      query.eq('complaint_id', rawId);
+    }
+    const { data: complaint, error } = await query.single();
+    if (error || !complaint) {
+      return NextResponse.json({ error: 'Complaint not found.' }, { status: 404 });
+    }
+    return NextResponse.json(complaint);
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { error: (err as Error).message || 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
@@ -29,10 +69,25 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
 
     if (demoCookie || !isSupabaseConfigured()) {
-      const allDemo = getDemoComplaints();
-      const existing = allDemo.find((c) => c.id === rawId || c.complaint_id === rawId);
+      let profile: Profile | null = null;
+      let studentName = 'Student';
+      if (demoCookie) {
+        try {
+          profile = JSON.parse(demoCookie) as Profile;
+          studentName = profile.name || studentName;
+        } catch {}
+      }
+
+      const existing = getStoredComplaintById(rawId);
       if (!existing) {
         return NextResponse.json({ error: 'Complaint not found.' }, { status: 404 });
+      }
+
+      if (profile && profile.role !== 'admin' && existing.user_id !== profile.id) {
+        return NextResponse.json(
+          { error: 'Forbidden: You do not have permission to modify this complaint.' },
+          { status: 403 }
+        );
       }
 
       if (existing.status !== 'Submitted') {
@@ -44,30 +99,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      if (payload.title) existing.title = payload.title;
-      if (payload.description) existing.description = payload.description;
-      if (payload.category) existing.category = payload.category;
-      if (payload.location) existing.location = payload.location;
-      if (payload.department) existing.department = payload.department;
-      if (payload.priority) existing.priority = payload.priority;
-      existing.updated_at = new Date().toISOString();
+      const updated = updateStoredComplaint(
+        existing.id,
+        {
+          ...(payload.title ? { title: payload.title } : {}),
+          ...(payload.description ? { description: payload.description } : {}),
+          ...(payload.category ? { category: payload.category } : {}),
+          ...(payload.location ? { location: payload.location } : {}),
+          ...(payload.department ? { department: payload.department } : {}),
+          ...(payload.priority ? { priority: payload.priority } : {}),
+        },
+        { id: existing.user_id, name: studentName }
+      );
 
-      const historyMap = getDemoHistory();
-      if (!historyMap[existing.complaint_id]) {
-        historyMap[existing.complaint_id] = [];
-      }
-      historyMap[existing.complaint_id].push({
-        id: `h_${Date.now()}`,
-        complaint_id: existing.id,
-        changed_by_user_id: existing.user_id,
-        changed_by_name: 'Student User',
-        old_status: 'Submitted',
-        new_status: 'Submitted',
-        remarks: 'Complaint details updated by student (Demo Mode)',
-        created_at: new Date().toISOString(),
-      });
-
-      return NextResponse.json({ complaint: existing });
+      return NextResponse.json({ complaint: updated });
     }
 
     const supabase = await createClient();
@@ -167,10 +212,25 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
 
     if (demoCookie || !isSupabaseConfigured()) {
-      const allDemo = getDemoComplaints();
-      const existing = allDemo.find((c) => c.id === rawId || c.complaint_id === rawId);
+      let profile: Profile | null = null;
+      let studentName = 'Student';
+      if (demoCookie) {
+        try {
+          profile = JSON.parse(demoCookie) as Profile;
+          studentName = profile.name || studentName;
+        } catch {}
+      }
+
+      const existing = getStoredComplaintById(rawId);
       if (!existing) {
         return NextResponse.json({ error: 'Complaint not found.' }, { status: 404 });
+      }
+
+      if (profile && profile.role !== 'admin' && existing.user_id !== profile.id) {
+        return NextResponse.json(
+          { error: 'Forbidden: You do not have permission to withdraw this complaint.' },
+          { status: 403 }
+        );
       }
 
       if (existing.status !== 'Submitted') {
@@ -182,28 +242,18 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
         );
       }
 
-      existing.status = 'Closed';
-      existing.admin_remarks = reason ? `Withdrawn by student. Reason: ${reason}` : 'Withdrawn by student.';
-      existing.updated_at = new Date().toISOString();
-
-      const historyMap = getDemoHistory();
-      if (!historyMap[existing.complaint_id]) {
-        historyMap[existing.complaint_id] = [];
-      }
-      historyMap[existing.complaint_id].push({
-        id: `h_${Date.now()}`,
-        complaint_id: existing.id,
-        changed_by_user_id: existing.user_id,
-        changed_by_name: 'Student User',
-        old_status: 'Submitted',
-        new_status: 'Closed',
-        remarks: reason ? `Student withdrew complaint: ${reason}` : 'Complaint withdrawn by student',
-        created_at: new Date().toISOString(),
-      });
+      const updated = updateStoredComplaint(
+        existing.id,
+        {
+          status: 'Closed',
+          admin_remarks: reason ? `Withdrawn by student. Reason: ${reason}` : 'Withdrawn by student.',
+        },
+        { id: existing.user_id, name: studentName }
+      );
 
       return NextResponse.json({
         message: 'Complaint successfully withdrawn and marked as Closed.',
-        complaint: existing,
+        complaint: updated,
       });
     }
 

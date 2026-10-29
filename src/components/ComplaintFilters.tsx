@@ -54,7 +54,7 @@ export function ComplaintFilters({
   const hasActiveFilters = Boolean(search || status || category || priority || department);
 
   return (
-    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs mb-6">
+    <div className="bg-white dark:bg-notepad-darkCard p-4 rounded-xl border border-notepad-border dark:border-notepad-darkBorder shadow-xs mb-6 transition-colors">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
         {/* Search */}
         <form onSubmit={handleSearchSubmit} className="relative sm:col-span-2 lg:col-span-1">
@@ -63,9 +63,9 @@ export function ComplaintFilters({
             name="search"
             defaultValue={search}
             placeholder="Search keywords, ID..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-navy-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
           />
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </form>
 
         {/* Status */}
@@ -73,7 +73,7 @@ export function ComplaintFilters({
           <select
             value={status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-navy-900 dark:text-slate-100 transition-colors"
           >
             <option value="">All Statuses</option>
             {COMPLAINT_STATUSES.map((st) => (
@@ -89,7 +89,7 @@ export function ComplaintFilters({
           <select
             value={category}
             onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-navy-900 dark:text-slate-100 transition-colors"
           >
             <option value="">All Categories</option>
             {COMPLAINT_CATEGORIES.map((cat) => (
@@ -105,7 +105,7 @@ export function ComplaintFilters({
           <select
             value={priority}
             onChange={(e) => handleFilterChange('priority', e.target.value)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-navy-900 dark:text-slate-100 transition-colors"
           >
             <option value="">All Priorities</option>
             {COMPLAINT_PRIORITIES.map((prio) => (
@@ -122,7 +122,7 @@ export function ComplaintFilters({
             <select
               value={department}
               onChange={(e) => handleFilterChange('department', e.target.value)}
-              className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-navy-900 dark:text-slate-100 transition-colors"
             >
               <option value="">All Departments</option>
               {CAMPUS_DEPARTMENTS.map((dept) => (
@@ -135,7 +135,7 @@ export function ComplaintFilters({
         ) : (
           hasActiveFilters && (
             <div className="flex items-center">
-              <Button variant="outline" size="sm" onClick={clearFilters} className="w-full flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700">
+              <Button variant="outline" size="sm" onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300">
                 <X className="w-3.5 h-3.5" /> Clear Filters
               </Button>
             </div>
@@ -143,9 +143,9 @@ export function ComplaintFilters({
         )}
       </div>
 
-      {showDepartment && hasActiveFilters && (
-        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs text-rose-600 hover:text-rose-700 flex items-center gap-1">
+      {isDeptVisible && hasActiveFilters && (
+        <div className="mt-3 pt-3 border-t border-notepad-border dark:border-notepad-darkBorder flex justify-end">
+          <Button variant="outline" size="sm" onClick={clearFilters} className="flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300">
             <X className="w-3.5 h-3.5" /> Reset All Filters
           </Button>
         </div>

@@ -68,6 +68,7 @@ export const complaintSchema = z.object({
   category: z.enum(COMPLAINT_CATEGORIES, {
     errorMap: () => ({ message: 'Please select an official campus category' }),
   }),
+  complaint_type: z.enum(['Hostel', 'College']).default('College'),
   location: z
     .string()
     .min(2, 'Location must be at least 2 characters')

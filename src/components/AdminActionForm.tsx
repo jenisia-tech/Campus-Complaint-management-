@@ -71,14 +71,14 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
         <div
           className={`p-3.5 rounded-lg text-sm flex items-start gap-2.5 ${
             message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-rose-50 text-rose-800 border border-rose-200'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
           }`}
         >
           {message.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 mt-0.5 text-rose-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 mt-0.5 text-rose-600 dark:text-rose-400 shrink-0" />
           )}
           <span>{message.text}</span>
         </div>
@@ -86,13 +86,13 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             Complaint Status *
           </label>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as any)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100"
             required
           >
             {COMPLAINT_STATUSES.map((st) => (
@@ -104,13 +104,13 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             Priority Level *
           </label>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value as any)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100"
             required
           >
             {COMPLAINT_PRIORITIES.map((prio) => (
@@ -122,13 +122,13 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             Responsible Department *
           </label>
           <select
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100"
             required
           >
             {CAMPUS_DEPARTMENTS.map((dept) => (
@@ -140,7 +140,7 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
             Assigned Technician / Staff
           </label>
           <input
@@ -148,13 +148,13 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
             value={assignedTo}
             onChange={(e) => setAssignedTo(e.target.value)}
             placeholder="e.g., HVAC Maintenance Crew A"
-            className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           Internal Administration Remarks
         </label>
         <textarea
@@ -162,12 +162,12 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
           value={adminRemarks}
           onChange={(e) => setAdminRemarks(e.target.value)}
           placeholder="Notes on replacement parts, site visits, or follow-up timelines..."
-          className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
           Public Resolution Notes
         </label>
         <textarea
@@ -175,13 +175,13 @@ export function AdminActionForm({ complaint }: AdminActionFormProps) {
           value={resolutionNotes}
           onChange={(e) => setResolutionNotes(e.target.value)}
           placeholder="Detailed explanation of work completed (visible to student upon resolution)..."
-          className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          className="w-full py-2 px-3 text-sm border border-notepad-border dark:border-notepad-darkBorder rounded-lg focus:ring-2 focus:ring-teal-500 bg-white dark:bg-campus-darkSurface text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
         />
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button type="submit" isLoading={isLoading} className="w-full sm:w-auto">
-          Save Status & Record Audit Entry
+        <Button type="submit" isLoading={isLoading} className="w-full sm:w-auto bg-teal-600 hover:bg-teal-500 text-white font-semibold">
+          Save Status &amp; Record Audit Entry
         </Button>
       </div>
     </form>

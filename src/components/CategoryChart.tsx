@@ -20,18 +20,19 @@ export function CategoryChart({ data }: CategoryChartProps) {
       {
         data: counts,
         backgroundColor: [
-          '#2563eb',
-          '#10b981',
-          '#f59e0b',
-          '#ef4444',
-          '#8b5cf6',
-          '#ec4899',
-          '#06b6d4',
-          '#84cc16',
-          '#64748b',
-          '#d97706',
+          '#173B57', // Primary navy
+          '#246B67', // Secondary teal
+          '#2DD4BF', // Dark accent teal
+          '#17664F', // Success
+          '#875B13', // Pending
+          '#A12D32', // Critical
+          '#0D9488', // Deep teal
+          '#38BDF8', // Light sky
+          '#526579', // Secondary slate
+          '#FCD58A', // Warm amber
         ],
         borderWidth: 1,
+        borderColor: 'transparent',
       },
     ],
   };

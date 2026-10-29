@@ -22,8 +22,8 @@ interface AdminComplaintsPageProps {
 }
 
 import { cookies } from 'next/headers';
-import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
-import { getDemoComplaints } from '@/lib/demo-data';
+import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
+import { getStoredComplaints } from '@/lib/local-store';
 
 export default async function AdminComplaintsPage({
   searchParams,
@@ -43,22 +43,24 @@ export default async function AdminComplaintsPage({
   if (demoCookie) {
     const profile = JSON.parse(demoCookie) as Profile;
     if (profile.role !== 'admin') {
-      redirect('/dashboard');
+      redirect('/dashboard?error=unauthorized_admin');
     }
-    let demoList = getDemoComplaints();
+    let storeList = getStoredComplaints();
     if (category && category !== 'All') {
-      demoList = demoList.filter((c) => c.category === category);
+      storeList = storeList.filter((c) => c.category === category);
     }
     if (priority && priority !== 'All') {
-      demoList = demoList.filter((c) => c.priority === priority);
+      storeList = storeList.filter((c) => c.priority === priority);
     }
     if (status && status !== 'All') {
-      demoList = demoList.filter((c) => c.status === status);
+      storeList = storeList.filter((c) => c.status === status);
     }
     if (department && department !== 'All') {
-      demoList = demoList.filter((c) => c.department === department);
+      storeList = storeList.filter((c) => c.department === department);
     }
-    complaints = demoList;
+    complaints = storeList;
+  } else if (!isSupabaseConfigured()) {
+    redirect('/login');
   } else {
     const supabase = await createClient();
     const {
@@ -126,19 +128,19 @@ export default async function AdminComplaintsPage({
           <div className="flex items-center gap-2 mb-1">
             <Link
               href="/admin"
-              className="text-xs font-semibold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1"
+              className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 inline-flex items-center gap-1"
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
             </Link>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Campus Complaints Directory</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Campus Complaints Directory</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Comprehensive registry of all student grievances across academic and facility departments
           </p>
         </div>
 
-        <div className="text-xs font-medium text-slate-600 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-2xs">
-          Showing <span className="font-bold text-slate-900">{complaints.length}</span> complaints
+        <div className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-campus-darkSurface px-3 py-2 rounded-lg border border-notepad-border dark:border-notepad-darkBorder shadow-2xs">
+          Showing <span className="font-bold text-slate-900 dark:text-slate-100">{complaints.length}</span> complaints
         </div>
       </div>
 
@@ -146,7 +148,7 @@ export default async function AdminComplaintsPage({
       <ComplaintFilters basePath="/admin/complaints" showDepartmentFilter={true} />
 
       {/* Complaints Table */}
-      <Card className="border-slate-200 shadow-xs">
+      <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
         <CardContent className="p-0">
           {complaints.length === 0 ? (
             <div className="p-8">
@@ -158,11 +160,11 @@ export default async function AdminComplaintsPage({
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider border-b border-notepad-border dark:border-notepad-darkBorder">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Complaint ID</th>
                     <th className="py-3 px-4 font-semibold">Student Details</th>
-                    <th className="py-3 px-4 font-semibold">Title & Category</th>
+                    <th className="py-3 px-4 font-semibold">Title &amp; Category</th>
                     <th className="py-3 px-4 font-semibold">Responsible Dept</th>
                     <th className="py-3 px-4 font-semibold">Priority</th>
                     <th className="py-3 px-4 font-semibold">Status</th>
@@ -171,18 +173,18 @@ export default async function AdminComplaintsPage({
                     <th className="py-3 px-4 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
                   {complaints.map((c) => {
                     const statusMeta = getStatusBadge(c.status);
                     const prioMeta = getPriorityBadge(c.priority);
 
                     return (
-                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-semibold text-xs text-primary-700">
+                      <tr key={c.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-semibold text-xs text-teal-700 dark:text-teal-400">
                           {c.complaint_id}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 text-xs">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
                             {c.profiles?.name || 'Student'}
                           </div>
                           <div className="text-xs text-slate-400">
@@ -190,10 +192,10 @@ export default async function AdminComplaintsPage({
                           </div>
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 line-clamp-1">{c.title}</div>
-                          <div className="text-xs text-slate-500">{c.category} &bull; {c.location}</div>
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1">{c.title}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{c.category} &bull; {c.location}</div>
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-600">
+                        <td className="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-300">
                           {c.department}
                         </td>
                         <td className="py-3.5 px-4">
@@ -204,17 +206,17 @@ export default async function AdminComplaintsPage({
                         </td>
                         <td className="py-3.5 px-4 text-xs">
                           {c.assigned_to ? (
-                            <span className="font-medium text-slate-800">{c.assigned_to}</span>
+                            <span className="font-medium text-slate-800 dark:text-slate-200">{c.assigned_to}</span>
                           ) : (
                             <span className="text-slate-400 italic">Unassigned</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-500 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                           {formatDate(c.created_at)}
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <Link href={`/admin/complaints/${c.id}`}>
-                            <Button size="sm" variant="outline" className="text-xs">
+                            <Button size="sm" variant="outline" className="text-xs border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-950/50">
                               Triage <ArrowRight className="w-3.5 h-3.5 ml-1" />
                             </Button>
                           </Link>

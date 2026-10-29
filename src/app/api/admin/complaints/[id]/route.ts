@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { adminUpdateSchema, isValidTransition } from '@/lib/validations/complaint';
 import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
-import { getDemoComplaints, getDemoHistory } from '@/lib/demo-data';
-import type { ComplaintStatus, Profile, Complaint } from '@/types/database';
+import { getStoredComplaintById, updateStoredComplaint, DEFAULT_ADMIN } from '@/lib/local-store';
+import type { ComplaintStatus, Profile } from '@/types/database';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -30,8 +30,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
 
     if (demoCookie || !isSupabaseConfigured()) {
-      const allDemo = getDemoComplaints();
-      const existing = allDemo.find((c) => c.id === rawId || c.complaint_id === rawId);
+      const existing = getStoredComplaintById(rawId);
       if (!existing) {
         return NextResponse.json({ error: 'Complaint not found.' }, { status: 404 });
       }
@@ -46,35 +45,37 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
             { status: 400 }
           );
         }
-        existing.status = payload.status as ComplaintStatus;
-        if (payload.status === 'Resolved' && !existing.resolved_at) {
-          existing.resolved_at = new Date().toISOString();
+      }
+
+      let adminUser: Profile = DEFAULT_ADMIN;
+      if (demoCookie) {
+        try {
+          adminUser = JSON.parse(demoCookie) as Profile;
+        } catch {
+          return NextResponse.json({ error: 'Unauthorized: Invalid session.' }, { status: 401 });
         }
+      } else {
+        return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
       }
 
-      if (payload.priority) existing.priority = payload.priority;
-      if (payload.department) existing.department = payload.department;
-      if (payload.assigned_to !== undefined) existing.assigned_to = payload.assigned_to;
-      if (payload.admin_remarks !== undefined) existing.admin_remarks = payload.admin_remarks;
-      if (payload.resolution_notes !== undefined) existing.resolution_notes = payload.resolution_notes;
-      existing.updated_at = new Date().toISOString();
-
-      const historyMap = getDemoHistory();
-      if (!historyMap[existing.complaint_id]) {
-        historyMap[existing.complaint_id] = [];
+      if (adminUser.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Administrator privileges required.' }, { status: 403 });
       }
-      historyMap[existing.complaint_id].push({
-        id: `h_${Date.now()}`,
-        complaint_id: existing.id,
-        changed_by_user_id: 'admin_demo',
-        changed_by_name: 'Dr. Sarah Mitchell (Admin)',
-        old_status: existing.status,
-        new_status: payload.status || existing.status,
-        remarks: payload.remarks || payload.admin_remarks || 'Updated by Administrator',
-        created_at: new Date().toISOString(),
-      });
 
-      return NextResponse.json({ complaint: existing });
+      const updated = updateStoredComplaint(
+        existing.id,
+        {
+          ...(payload.status ? { status: payload.status as ComplaintStatus } : {}),
+          ...(payload.priority ? { priority: payload.priority } : {}),
+          ...(payload.department ? { department: payload.department } : {}),
+          ...(payload.assigned_to !== undefined ? { assigned_to: payload.assigned_to } : {}),
+          ...(payload.admin_remarks !== undefined ? { admin_remarks: payload.admin_remarks } : {}),
+          ...(payload.resolution_notes !== undefined ? { resolution_notes: payload.resolution_notes } : {}),
+        },
+        { id: adminUser.id, name: adminUser.name || 'Campus Administrator' }
+      );
+
+      return NextResponse.json({ complaint: updated });
     }
 
     const supabase = await createClient();

@@ -20,7 +20,7 @@ export function StatusChart({ data }: StatusChartProps) {
       {
         label: 'Complaints',
         data: counts,
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#246B67',
         borderRadius: 6,
       },
     ],

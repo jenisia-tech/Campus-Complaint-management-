@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { complaintSchema } from '@/lib/validations/complaint';
-import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
-import { getDemoComplaints, addDemoComplaint, DEMO_STUDENT } from '@/lib/demo-data';
+import { DEMO_SESSION_COOKIE, isSupabaseConfigured, DEMO_STUDENT } from '@/lib/auth-demo';
+import { getStoredComplaints, addStoredComplaint } from '@/lib/local-store';
 import type { Profile } from '@/types/database';
 
 export async function GET(request: NextRequest) {
   try {
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
     if (demoCookie || !isSupabaseConfigured()) {
-      return NextResponse.json({ complaints: getDemoComplaints() });
+      let profile: Profile | null = null;
+      if (demoCookie) {
+        try {
+          profile = JSON.parse(demoCookie) as Profile;
+        } catch {}
+      }
+      const complaints = getStoredComplaints();
+      return NextResponse.json({ complaints });
     }
 
     const supabase = await createClient();
@@ -32,17 +39,7 @@ export async function GET(request: NextRequest) {
       .select('*, profiles(name, student_id, email, department)')
       .order('created_at', { ascending: false });
 
-    // Enforce student ownership
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      query = query.eq('user_id', user.id);
-    }
-
+    // Campus-wide ledger: all authenticated students see all complaints across campus
     if (status) query = query.eq('status', status);
     if (category) query = query.eq('category', category);
     if (priority) query = query.eq('priority', priority);
@@ -83,20 +80,17 @@ export async function POST(request: NextRequest) {
     // Check demo mode
     const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
     if (demoCookie || !isSupabaseConfigured()) {
-      let studentId: string | undefined;
+      let userProfile: Profile = DEMO_STUDENT;
       if (demoCookie) {
         try {
-          const profile = JSON.parse(demoCookie) as Profile;
-          studentId = profile.id;
-        } catch {
-          // ignore
-        }
+          userProfile = JSON.parse(demoCookie) as Profile;
+        } catch {}
       }
-      const newComplaint = addDemoComplaint({
-        ...payload,
-        user_id: studentId || DEMO_STUDENT.id,
-      });
-      return NextResponse.json({ complaint: newComplaint }, { status: 201 });
+      const newComplaint = addStoredComplaint(payload, userProfile);
+      return NextResponse.json({
+        message: 'Complaint submitted successfully and saved to local ledger.',
+        complaint: newComplaint,
+      }, { status: 201 });
     }
 
     const supabase = await createClient();

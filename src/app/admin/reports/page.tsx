@@ -12,8 +12,8 @@ import { PrintButton } from '@/components/PrintButton';
 import { ArrowLeft, Layers, Building2 } from 'lucide-react';
 
 import { cookies } from 'next/headers';
-import { DEMO_SESSION_COOKIE } from '@/lib/auth-demo';
-import { getDemoComplaints } from '@/lib/demo-data';
+import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
+import { getStoredComplaints } from '@/lib/local-store';
 
 export default async function AdminReportsPage() {
   const cookieStore = await cookies();
@@ -24,9 +24,11 @@ export default async function AdminReportsPage() {
   if (demoCookie) {
     const profile = JSON.parse(demoCookie) as Profile;
     if (profile.role !== 'admin') {
-      redirect('/dashboard');
+      redirect('/dashboard?error=unauthorized_admin');
     }
-    complaints = getDemoComplaints();
+    complaints = getStoredComplaints();
+  } else if (!isSupabaseConfigured()) {
+    redirect('/login');
   } else {
     const supabase = await createClient();
     const {
@@ -37,25 +39,19 @@ export default async function AdminReportsPage() {
       redirect('/login');
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // Parallel fetch for admin role check & complaints dataset
+    const [profileRes, complaintsRes] = await Promise.all([
+      supabase.from('profiles').select('role').eq('id', user.id).single(),
+      supabase.from('complaints').select('*').order('created_at', { ascending: false }),
+    ]);
+
+    const profile = profileRes.data as Profile | null;
 
     if (profile?.role !== 'admin') {
       redirect('/dashboard');
     }
 
-    const { data: complaintsData, error } = await supabase
-      .from('complaints')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Reports fetch error:', error);
-    }
-    complaints = (complaintsData as Complaint[]) || [];
+    complaints = (complaintsRes.data as Complaint[]) || [];
   }
   const total = complaints.length;
 
@@ -94,15 +90,15 @@ export default async function AdminReportsPage() {
         <div>
           <Link
             href="/admin"
-            className="text-xs font-semibold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 mb-1"
+            className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 inline-flex items-center gap-1 mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             Campus Grievance &amp; Resolution Analytics
           </h1>
-          <p className="text-sm text-slate-500">
-            Official Software Engineering IA3 evaluation report generated from live Supabase records
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Official Software Engineering IA3 evaluation report generated from live campus records
           </p>
         </div>
 
@@ -111,55 +107,55 @@ export default async function AdminReportsPage() {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="p-5 bg-white dark:bg-notepad-darkCard border border-notepad-border dark:border-notepad-darkBorder rounded-xl shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Total Complaints
           </div>
-          <div className="text-3xl font-extrabold text-slate-900 mt-2">{total}</div>
-          <div className="text-xs text-slate-500 mt-1">Grievances filed to date</div>
+          <div className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">{total}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Grievances filed to date</div>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="p-5 bg-white dark:bg-notepad-darkCard border border-notepad-border dark:border-notepad-darkBorder rounded-xl shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Resolution Rate
           </div>
-          <div className="text-3xl font-extrabold text-emerald-600 mt-2">{resolutionRate}%</div>
-          <div className="text-xs text-slate-500 mt-1">{resolvedCount} of {total} closed or resolved</div>
+          <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">{resolutionRate}%</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{resolvedCount} of {total} closed or resolved</div>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="p-5 bg-white dark:bg-notepad-darkCard border border-notepad-border dark:border-notepad-darkBorder rounded-xl shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Avg Turnaround Time
           </div>
-          <div className="text-3xl font-extrabold text-indigo-600 mt-2">{avgTurnaround}h</div>
-          <div className="text-xs text-slate-500 mt-1">From submission to resolved</div>
+          <div className="text-3xl font-extrabold text-teal-600 dark:text-teal-400 mt-2">{avgTurnaround}h</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">From submission to resolved</div>
         </div>
 
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="p-5 bg-white dark:bg-notepad-darkCard border border-notepad-border dark:border-notepad-darkBorder rounded-xl shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Active Workload
           </div>
-          <div className="text-3xl font-extrabold text-amber-600 mt-2">
+          <div className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-2">
             {total - resolvedCount}
           </div>
-          <div className="text-xs text-slate-500 mt-1">Pending review or maintenance</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Pending review or maintenance</div>
         </div>
       </div>
 
       {/* Visual Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print">
-        <Card className="border-slate-200 shadow-xs">
+        <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Distribution by Category</CardTitle>
+            <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">Distribution by Category</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
             <CategoryChart data={categoryStats} />
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-xs">
+        <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
           <CardHeader>
-            <CardTitle className="text-base font-semibold">Distribution by Workflow Status</CardTitle>
+            <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">Distribution by Workflow Status</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
             <StatusChart data={statusStats} />
@@ -170,30 +166,30 @@ export default async function AdminReportsPage() {
       {/* Breakdown Tables for Academic Record */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Category Breakdown Table */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
           <CardHeader>
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Layers className="w-4 h-4 text-primary-600" />
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
+              <Layers className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               Category Breakdown
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider border-y border-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider border-y border-notepad-border dark:border-notepad-darkBorder">
                 <tr>
                   <th className="py-2.5 px-4 font-semibold">Category</th>
                   <th className="py-2.5 px-4 font-semibold text-right">Count</th>
                   <th className="py-2.5 px-4 font-semibold text-right">Share (%)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
                 {categoryStats.map((item) => {
                   const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
                   return (
-                    <tr key={item.category} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-4 font-medium text-slate-900">{item.category}</td>
+                    <tr key={item.category} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/50">
+                      <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">{item.category}</td>
                       <td className="py-2.5 px-4 text-right font-semibold">{item.count}</td>
-                      <td className="py-2.5 px-4 text-right text-slate-500">{pct}%</td>
+                      <td className="py-2.5 px-4 text-right text-slate-500 dark:text-slate-400">{pct}%</td>
                     </tr>
                   );
                 })}
@@ -203,30 +199,30 @@ export default async function AdminReportsPage() {
         </Card>
 
         {/* Department Breakdown Table */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-xs">
           <CardHeader>
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-indigo-600" />
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
+              <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               Responsible Department Load
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider border-y border-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 uppercase tracking-wider border-y border-notepad-border dark:border-notepad-darkBorder">
                 <tr>
                   <th className="py-2.5 px-4 font-semibold">Department</th>
                   <th className="py-2.5 px-4 font-semibold text-right">Assigned</th>
                   <th className="py-2.5 px-4 font-semibold text-right">Share (%)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
                 {deptStats.map((item) => {
                   const pct = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
                   return (
-                    <tr key={item.department} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-4 font-medium text-slate-900">{item.department}</td>
+                    <tr key={item.department} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/50">
+                      <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-slate-100">{item.department}</td>
                       <td className="py-2.5 px-4 text-right font-semibold">{item.count}</td>
-                      <td className="py-2.5 px-4 text-right text-slate-500">{pct}%</td>
+                      <td className="py-2.5 px-4 text-right text-slate-500 dark:text-slate-400">{pct}%</td>
                     </tr>
                   );
                 })}

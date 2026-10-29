@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEMO_SESSION_COOKIE, isSupabaseConfigured } from '@/lib/auth-demo';
 import type { Profile } from '@/types/database';
+import { createFetchWithTimeout } from './timeout';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -14,7 +15,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/complaints') ||
     path.startsWith('/admin');
 
-  // Check for local demo session cookie first
+  // 1. Check for local demo session cookie first (0ms latency, no external network)
   const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
   if (demoCookie) {
     try {
@@ -35,11 +36,11 @@ export async function updateSession(request: NextRequest) {
 
       return supabaseResponse;
     } catch {
-      // invalid cookie, fall through
+      // invalid cookie, continue
     }
   }
 
-  // If Supabase is not configured and no demo cookie, protect routes
+  // 2. If Supabase is not configured and no demo cookie, protect routes without calling network
   if (!isSupabaseConfigured()) {
     if (isProtectedRoute) {
       const url = request.nextUrl.clone();
@@ -50,7 +51,17 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Live Supabase authentication
+  // 3. Performance check: if public route and no auth cookies present, skip remote auth network request
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookies = allCookies.some(
+    (c) => c.name.startsWith('sb-') || c.name.includes('auth-token')
+  );
+
+  if (!isProtectedRoute && !hasAuthCookies && path !== '/login' && path !== '/register') {
+    return supabaseResponse;
+  }
+
+  // 4. Live Supabase authentication with network timeout protection
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -71,6 +82,9 @@ export async function updateSession(request: NextRequest) {
         );
       },
     },
+    global: {
+      fetch: createFetchWithTimeout(5000),
+    },
   });
 
   try {
@@ -78,7 +92,7 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // 1. Unauthenticated users trying to access protected routes
+    // Unauthenticated users trying to access protected routes
     if (!user && isProtectedRoute) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -86,33 +100,26 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 2. Administrator Role Verification for /admin/*
-    if (user && path.startsWith('/admin')) {
+    // Role-dependent routing for authenticated users
+    if (user && (path.startsWith('/admin') || path === '/login' || path === '/register')) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (!profile || profile.role !== 'admin') {
+      if (path.startsWith('/admin') && profile?.role !== 'admin') {
         const url = request.nextUrl.clone();
         url.pathname = '/dashboard';
         url.searchParams.set('error', 'unauthorized_admin');
         return NextResponse.redirect(url);
       }
-    }
 
-    // 3. Authenticated users visiting /login or /register
-    if (user && (path === '/login' || path === '/register')) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      const url = request.nextUrl.clone();
-      url.pathname = profile?.role === 'admin' ? '/admin' : '/dashboard';
-      return NextResponse.redirect(url);
+      if (path === '/login' || path === '/register') {
+        const url = request.nextUrl.clone();
+        url.pathname = profile?.role === 'admin' ? '/admin' : '/dashboard';
+        return NextResponse.redirect(url);
+      }
     }
   } catch {
     // network or auth error fallback

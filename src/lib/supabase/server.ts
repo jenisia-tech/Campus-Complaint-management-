@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { createFetchWithTimeout } from './timeout';
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -24,6 +25,9 @@ export async function createClient() {
         }
       },
     },
+    global: {
+      fetch: createFetchWithTimeout(6000),
+    },
   });
 }
 
@@ -44,6 +48,9 @@ export function createAdminClient() {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    global: {
+      fetch: createFetchWithTimeout(6000),
     },
   });
 }

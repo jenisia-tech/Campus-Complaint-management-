@@ -8,9 +8,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import type { ComplaintCategory, ComplaintPriority, Complaint } from '@/types/database';
-import { createClient } from '@/lib/supabase/client';
-import { isSupabaseConfigured } from '@/lib/auth-demo';
-import { getDemoComplaints } from '@/lib/demo-data';
 
 const CATEGORIES: ComplaintCategory[] = [
   'Classroom and infrastructure',
@@ -62,52 +59,26 @@ export default function EditComplaintPage() {
     async function loadComplaint() {
       if (!complaintId) return;
       try {
-        if (!isSupabaseConfigured()) {
-          const allDemo = getDemoComplaints();
-          const complaint = allDemo.find((c) => c.id === complaintId || c.complaint_id === complaintId);
-          if (!complaint) {
-            setErrorMessage('Complaint not found.');
-            setLoading(false);
-            return;
-          }
-          if (complaint.status !== 'Submitted') {
-            router.replace(`/complaints/${complaint.id}`);
-            return;
-          }
-          setFormData({
-            title: complaint.title,
-            description: complaint.description,
-            category: complaint.category,
-            location: complaint.location,
-            department: complaint.department,
-            priority: complaint.priority,
-          });
-          setLoading(false);
-          return;
-        }
-
-        const supabase = createClient();
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(complaintId);
-
-        let query = supabase.from('complaints').select('*');
-        if (isUUID) {
-          query = query.eq('id', complaintId);
-        } else {
-          query = query.eq('complaint_id', complaintId);
-        }
-
-        const { data, error } = await query.single();
-
-        if (error || !data) {
+        const res = await fetch(`/api/complaints/${complaintId}`);
+        if (!res.ok) {
           setErrorMessage('Could not load complaint details.');
           setLoading(false);
           return;
         }
 
-        const complaint = data as Complaint;
+        const complaint = (await res.json()) as Complaint;
+
+        const profileRes = await fetch('/api/profile');
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          if (profile.id && complaint.user_id && profile.id !== complaint.user_id && profile.role !== 'admin') {
+            router.replace(`/complaints/${complaint.id || complaintId}`);
+            return;
+          }
+        }
 
         if (complaint.status !== 'Submitted') {
-          router.replace(`/complaints/${complaint.id}`);
+          router.replace(`/complaints/${complaint.id || complaintId}`);
           return;
         }
 
@@ -181,23 +152,23 @@ export default function EditComplaintPage() {
     <div className="max-w-3xl mx-auto py-4 space-y-6">
       <Link
         href={`/complaints/${complaintId}`}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-navy-900 dark:hover:text-slate-100 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Cancel and return to Complaint
       </Link>
 
-      <Card className="border-slate-200 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold">Edit Submitted Complaint</CardTitle>
-          <CardDescription>
-            You may update details while this complaint remains in <strong className="text-primary-700">Submitted</strong> status.
+      <Card className="border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard shadow-md">
+        <CardHeader className="border-b border-notepad-border dark:border-notepad-darkBorder">
+          <CardTitle className="text-xl font-bold text-navy-900 dark:text-slate-100">Edit Submitted Complaint</CardTitle>
+          <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+            You may update details while this complaint remains in <strong className="text-teal-700 dark:text-teal-300">Submitted</strong> status.
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pt-6">
           {errorMessage && (
-            <div className="mb-5 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start gap-2">
+            <div className="mb-5 p-3.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-[#FDA4AF] text-sm flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -205,7 +176,7 @@ export default function EditComplaintPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Complaint Title *
               </label>
               <input
@@ -214,20 +185,20 @@ export default function EditComplaintPage() {
                 required
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Category *
                 </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
@@ -238,14 +209,14 @@ export default function EditComplaintPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Severity / Priority *
                 </label>
                 <select
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                 >
                   {PRIORITIES.map((prio) => (
                     <option key={prio} value={prio}>
@@ -258,7 +229,7 @@ export default function EditComplaintPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Campus Location / Room *
                 </label>
                 <input
@@ -267,19 +238,19 @@ export default function EditComplaintPage() {
                   required
                   value={formData.location}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Assigned Department *
                 </label>
                 <select
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                 >
                   {DEPARTMENTS.map((dept) => (
                     <option key={dept} value={dept}>
@@ -291,7 +262,7 @@ export default function EditComplaintPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Detailed Description *
               </label>
               <textarea
@@ -300,7 +271,7 @@ export default function EditComplaintPage() {
                 rows={5}
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
               />
             </div>
 
@@ -310,7 +281,7 @@ export default function EditComplaintPage() {
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" disabled={submitting} className="min-w-[140px]">
+              <Button type="submit" disabled={submitting} className="min-w-[140px] bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-slate-900 font-semibold shadow-xs">
                 {submitting ? (
                   'Saving Changes...'
                 ) : (
