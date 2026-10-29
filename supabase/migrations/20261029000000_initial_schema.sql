@@ -103,32 +103,38 @@ BEFORE INSERT ON public.complaints
 FOR EACH ROW
 EXECUTE FUNCTION public.set_complaint_id();
 
+
 -- 8. Automated Trigger to Create Profile on Auth Signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, email, name, student_id, department, role)
+    INSERT INTO public.profiles (
+        id, email, name, student_id, department, role
+    )
     VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'name', 'Student User'),
         NEW.raw_user_meta_data->>'student_id',
         COALESCE(NEW.raw_user_meta_data->>'department', 'General'),
-        COALESCE(NEW.raw_user_meta_data->>'role', 'student')
+        'student'
     )
     ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         student_id = EXCLUDED.student_id,
         department = EXCLUDED.department;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_new_user();
+
 
 -- 9. Row Level Security (RLS) Enablement
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;

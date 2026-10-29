@@ -1,27 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { isSupabaseConfigured } from '@/lib/auth-demo';
-import { registerSchema } from '@/lib/validations/complaint';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
-
-const DEPARTMENTS = [
-  'Computer Science and Engineering',
-  'Information Technology',
-  'Electronics and Communication',
-  'Electrical and Electronics',
-  'Mechanical Engineering',
-  'Civil Engineering',
-  'Chemical Engineering',
-  'Biotechnology',
-  'Management Studies',
-  'General Administration',
-];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,261 +12,305 @@ export default function RegisterPage() {
     name: '',
     student_id: '',
     email: '',
-    department: 'Computer Science and Engineering',
+    department: '',
     password: '',
     confirm_password: '',
   });
 
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
+  function handleChange(
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
+    const { name, value } = event.target;
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
     }));
-  };
+  }
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-    setSuccessMessage(null);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    // Schema validation
-    const validation = registerSchema.safeParse(formData);
-    if (!validation.success) {
-      setErrorMessage(validation.error.issues[0]?.message || 'Please fix errors in the form');
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const name = formData.name.trim();
+    const studentId = formData.student_id.trim();
+    const email = formData.email.trim().toLowerCase();
+    const department = formData.department.trim();
+    const password = formData.password;
+    const confirmPassword = formData.confirm_password;
+
+    if (!name || !studentId || !email || !department || !password) {
+      setErrorMessage('Please fill in all the required fields.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setErrorMessage('Password must contain at least 8 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match.');
       return;
     }
 
     setLoading(true);
 
-    // If Supabase is unconfigured, complete registration in local demo evaluation mode
-    if (!isSupabaseConfigured()) {
-      try {
-        const res = await fetch('/api/auth/demo-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            isRegistration: true,
-            role: 'student',
-            name: formData.name,
-            student_id: formData.student_id,
-            department: formData.department,
-            email: formData.email,
-            password: formData.password,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          window.location.href = '/dashboard';
-          return;
-        } else {
-          setErrorMessage(data.error || 'Registration failed');
-          setLoading(false);
-          return;
-        }
-      } catch (err: unknown) {
-        setErrorMessage((err as Error).message || 'Registration failed');
-        setLoading(false);
-        return;
-      }
-    }
-
     try {
       const supabase = createClient();
+
       const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+        email,
+        password,
         options: {
           data: {
-            name: formData.name,
-            student_id: formData.student_id,
-            department: formData.department,
+            name,
+            student_id: studentId,
+            department,
           },
         },
       });
 
       if (error) {
-        setErrorMessage(error.message || 'Registration failed.');
-        setLoading(false);
+        setErrorMessage(error.message);
         return;
       }
 
       if (data.session) {
-        // Direct session created (email confirmation disabled in Supabase)
+        setSuccessMessage('Registration successful! Redirecting...');
+
         router.push('/dashboard');
         router.refresh();
       } else {
         setSuccessMessage(
-          'Registration successful! Please check your email inbox to confirm your account, or sign in now.'
+          'Registration successful! Please check your email and confirm your account before signing in.'
         );
       }
-    } catch (err: unknown) {
-      setErrorMessage((err as Error).message || 'An unexpected error occurred.');
+    } catch {
+      setErrorMessage(
+        'Something went wrong while creating your account. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  const inputClassName =
+    'mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100';
+
+  const labelClassName = 'block text-sm font-medium text-gray-700';
 
   return (
-    <div className="max-w-xl mx-auto py-8">
-      <Card className="shadow-lg border-notepad-border dark:border-notepad-darkBorder bg-white dark:bg-notepad-darkCard">
-        <CardHeader className="text-center space-y-2 border-b border-notepad-border dark:border-notepad-darkBorder">
-          <div className="w-12 h-12 bg-teal-50 dark:bg-teal-950/70 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-xl flex items-center justify-center mx-auto mb-1">
-            <UserPlus className="w-6 h-6" />
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+      <div className="w-full max-w-lg">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-2xl text-white shadow-sm">
+            🎓
           </div>
-          <CardTitle className="text-2xl font-bold text-navy-900 dark:text-slate-100">Student Registration</CardTitle>
-          <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-            Create an official student account to report and track campus complaints
-          </CardDescription>
-        </CardHeader>
 
-        <CardContent className="pt-6">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Create an Account
+          </h1>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Register to access the Campus Complaint Management System.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
           {errorMessage && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-[#FDA4AF] text-sm flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{errorMessage}</span>
+            <div
+              role="alert"
+              className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {errorMessage}
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-[#86EFAC] text-sm flex items-start gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">{successMessage}</p>
+            <div
+              role="status"
+              className="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+            >
+              {successMessage}
+
+              {!loading && (
                 <div className="mt-2">
-                  <Link href="/login">
-                    <Button size="sm" variant="outline" className="bg-white dark:bg-notepad-darkCard">
-                      Proceed to Sign In
-                    </Button>
+                  <Link
+                    href="/login"
+                    className="font-semibold underline"
+                  >
+                    Go to Sign In
                   </Link>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
-          {!successMessage && (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="e.g. Alex Johnson"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="name" className={labelClassName}>
+                Full Name
+              </label>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Student Roll / ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="student_id"
-                    required
-                    value={formData.student_id}
-                    onChange={handleChange}
-                    placeholder="e.g. STU-2026-0042"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  />
-                </div>
-              </div>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChange={handleChange}
+                className={inputClassName}
+                required
+                disabled={loading}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Campus Email *
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="alex@campus.edu"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  />
-                </div>
+            <div>
+              <label htmlFor="student_id" className={labelClassName}>
+                Student ID
+              </label>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Academic Department *
-                  </label>
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  >
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>
-                        {dept}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <input
+                id="student_id"
+                name="student_id"
+                type="text"
+                placeholder="Enter your student ID"
+                value={formData.student_id}
+                onChange={handleChange}
+                className={inputClassName}
+                required
+                disabled={loading}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Password *
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Min 6 characters"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  />
-                </div>
+            <div>
+              <label htmlFor="email" className={labelClassName}>
+                College Email
+              </label>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Confirm Password *
-                  </label>
-                  <input
-                    type="password"
-                    name="confirm_password"
-                    required
-                    value={formData.confirm_password}
-                    onChange={handleChange}
-                    placeholder="Re-enter password"
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-campus-darkSurface border border-notepad-border dark:border-notepad-darkBorder rounded-lg text-sm text-navy-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
-                  />
-                </div>
-              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="Enter your email address"
+                value={formData.email}
+                onChange={handleChange}
+                className={inputClassName}
+                required
+                disabled={loading}
+              />
+            </div>
 
-              <div className="pt-2">
-                <Button type="submit" disabled={loading} className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-400 text-white dark:text-slate-900 font-semibold shadow-xs">
-                  {loading ? 'Creating Student Account...' : 'Complete Registration'}
-                </Button>
-              </div>
-            </form>
-          )}
-        </CardContent>
+            <div>
+              <label htmlFor="department" className={labelClassName}>
+                Department
+              </label>
 
-        <CardFooter className="flex justify-center border-t border-notepad-border dark:border-notepad-darkBorder text-xs text-slate-500 dark:text-slate-400">
-          <span>Already registered?</span>
-          <Link href="/login" className="ml-1.5 font-semibold text-primary-600 hover:underline">
-            Sign In to Portal
-          </Link>
-        </CardFooter>
-      </Card>
-    </div>
+              <select
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className={inputClassName}
+                required
+                disabled={loading}
+              >
+                <option value="">Select your department</option>
+                <option value="Administration">Administration</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Electrical Engineering">
+                  Electrical Engineering
+                </option>
+                <option value="Mechanical Engineering">
+                  Mechanical Engineering
+                </option>
+                <option value="Civil Engineering">Civil Engineering</option>
+                <option value="Estate & Maintenance">
+                  Estate & Maintenance
+                </option>
+                <option value="IT & Network Services">
+                  IT & Network Services
+                </option>
+                <option value="Hostel & Welfare">Hostel & Welfare</option>
+                <option value="Library Services">Library Services</option>
+                <option value="Transport Division">Transport Division</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="password" className={labelClassName}>
+                Password
+              </label>
+
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Create a password (minimum 8 characters)"
+                value={formData.password}
+                onChange={handleChange}
+                className={inputClassName}
+                minLength={8}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirm_password" className={labelClassName}>
+                Confirm Password
+              </label>
+
+              <input
+                id="confirm_password"
+                name="confirm_password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Enter your password again"
+                value={formData.confirm_password}
+                onChange={handleChange}
+                className={inputClassName}
+                minLength={8}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="mt-6 border-t border-gray-200 pt-5 text-center text-sm text-gray-600">
+            Already have an account?
+
+            <Link
+              href="/login"
+              className="ml-1.5 font-semibold text-blue-600 hover:underline"
+            >
+              Sign In to Portal
+            </Link>
+          </div>
+        </div>
+
+        <p className="mt-5 text-center text-xs text-gray-500">
+          Your account is managed securely through Supabase authentication.
+        </p>
+      </div>
+    </main>
   );
 }
-

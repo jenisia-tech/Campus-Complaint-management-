@@ -1,31 +1,22 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { complaintSchema } from '@/lib/validations/complaint';
-import { DEMO_SESSION_COOKIE, isSupabaseConfigured, DEMO_STUDENT } from '@/lib/auth-demo';
-import { getStoredComplaints, addStoredComplaint } from '@/lib/local-store';
-import type { Profile } from '@/types/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
-    if (demoCookie || !isSupabaseConfigured()) {
-      let profile: Profile | null = null;
-      if (demoCookie) {
-        try {
-          profile = JSON.parse(demoCookie) as Profile;
-        } catch {}
-      }
-      const complaints = getStoredComplaints();
-      return NextResponse.json({ complaints });
-    }
-
     const supabase = await createClient();
+
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -39,25 +30,34 @@ export async function GET(request: NextRequest) {
       .select('*, profiles(name, student_id, email, department)')
       .order('created_at', { ascending: false });
 
-    // Campus-wide ledger: all authenticated students see all complaints across campus
     if (status) query = query.eq('status', status);
     if (category) query = query.eq('category', category);
     if (priority) query = query.eq('priority', priority);
+
     if (search) {
-      query = query.or(
-        `complaint_id.ilike.%${search}%,title.ilike.%${search}%,description.ilike.%${search}%,location.ilike.%${search}%`
+      const safeSearch = search.replace(/[,%()]/g, ' ').trim();
+
+      if (safeSearch) {
+        query = query.or(
+          `complaint_id.ilike.%${safeSearch}%,title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%,location.ilike.%${safeSearch}%`
+        );
+      }
+    }
+
+    // Database RLS controls which complaints this user can access.
+    const { data, error } = await query;
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
       );
     }
 
-    const { data, error } = await query;
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
     return NextResponse.json({ complaints: data });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json(
-      { error: (err as Error).message || 'Internal Server Error' },
+      { error: 'Unable to load complaints.' },
       { status: 500 }
     );
   }
@@ -66,51 +66,51 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const json = await request.json();
-    const parseResult = complaintSchema.safeParse(json);
+    const result = complaintSchema.safeParse(json);
 
-    if (!parseResult.success) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: parseResult.error.issues.map((e) => e.message).join('. ') },
+        {
+          error: result.error.issues
+            .map((issue) => issue.message)
+            .join('. '),
+        },
         { status: 400 }
       );
     }
 
-    const payload = parseResult.data;
-
-    // Check demo mode
-    const demoCookie = request.cookies.get(DEMO_SESSION_COOKIE)?.value;
-    if (demoCookie || !isSupabaseConfigured()) {
-      let userProfile: Profile = DEMO_STUDENT;
-      if (demoCookie) {
-        try {
-          userProfile = JSON.parse(demoCookie) as Profile;
-        } catch {}
-      }
-      const newComplaint = addStoredComplaint(payload, userProfile);
-      return NextResponse.json({
-        message: 'Complaint submitted successfully and saved to local ledger.',
-        complaint: newComplaint,
-      }, { status: 201 });
-    }
-
     const supabase = await createClient();
+
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please log in.' },
+        { status: 401 }
+      );
     }
 
-    // Get user profile name
-    const { data: profile } = await supabase
+    const payload = result.data;
+
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('name')
       .eq('id', user.id)
       .single();
 
-    // Insert complaint
-    const { data: complaint, error: insertErr } = await supabase
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { error: 'Your user profile was not found. Please contact the administrator.' },
+        { status: 403 }
+      );
+    }
+
+    // The user ID comes from the verified session, not the request body.
+    // The database trigger generates the complaint reference number.
+    const { data: complaint, error: insertError } = await supabase
       .from('complaints')
       .insert({
         user_id: user.id,
@@ -124,24 +124,46 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (insertErr) {
-      return NextResponse.json({ error: insertErr.message }, { status: 500 });
+    if (insertError || !complaint) {
+      return NextResponse.json(
+        { error: insertError?.message || 'Unable to save complaint.' },
+        { status: 500 }
+      );
     }
 
-    // Insert initial status history
-    await supabase.from('complaint_history').insert({
-      complaint_id: complaint.id,
-      changed_by_user_id: user.id,
-      changed_by_name: profile?.name || 'Student User',
-      old_status: null,
-      new_status: 'Submitted',
-      remarks: 'Initial complaint submission',
-    });
+    // complaint_history references the text complaint_id,
+    // not the complaint row's UUID.
+    const { error: historyError } = await supabase
+      .from('complaint_history')
+      .insert({
+        complaint_id: complaint.complaint_id,
+        changed_by_user_id: user.id,
+        changed_by_name: profile.name,
+        old_status: null,
+        new_status: 'Submitted',
+        remarks: 'Initial complaint submission',
+      });
 
-    return NextResponse.json({ complaint }, { status: 201 });
-  } catch (err: unknown) {
+    if (historyError) {
+      return NextResponse.json(
+        {
+          error: 'The complaint was saved, but its history entry failed. Please contact the administrator.',
+          complaint,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      { error: (err as Error).message || 'Internal Server Error' },
+      {
+        message: 'Complaint submitted successfully.',
+        complaint,
+      },
+      { status: 201 }
+    );
+  } catch {
+    return NextResponse.json(
+      { error: 'An unexpected error occurred while processing the complaint.' },
       { status: 500 }
     );
   }
